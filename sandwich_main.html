@@ -1,5 +1,4 @@
-<!doctype html>
-<html lang="en">
+<html>
 <head>
 	<meta charset="UTF-8" />
 	<title>Sandwich Game Placeholder Title</title>
@@ -16,15 +15,60 @@
 
 var game = new Phaser.Game(750, 1334, Phaser.AUTO, '',
 	{preload: preload, create: create, update: update});
+//Global Variables
+var wheel;
+var leftTween;
+var rightTween;
+var tween_duration = 200;
+var last_spin;
+
+//Temporary Variables
+var key1;
+var key2;
 
 function preload () {
-
+	game.load.image("wheel_sprite", "assets/images/placeholder/placeholder_wheel.png");
 }
 
 function create() {
+	game.physics.startSystem(Phaser.Physics.ARCADE);
 
+	wheel = game.add.sprite(0, 0, "wheel_sprite");
+	wheel.width = 700;
+	wheel.height = 700;
+	wheel.anchor.set(0.5, 0.5);
+	wheel.x = game.width/2;
+	wheel.y = game.height - 250;
+	wheel.angle -= 45;
+
+	leftTween = game.add.tween(wheel).to({angle: "-90"}, tween_duration, Phaser.Easing.Linear.None, true, 100);
+	rightTween = game.add.tween(wheel).to({angle: "+90"}, tween_duration, Phaser.Easing.Linear.None, true, 100);
+
+	key1 = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
+	key1.onDown.add(spin_left, this);
+	key2 = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
+	key2.onDown.add(spin_right, this);
 }
 
 function update() {
-	
+
 }
+
+function spin_left() {
+	var current_time = this.time.now;
+	if (current_time - last_spin > tween_duration) {
+		leftTween.start();
+		last_spin = this.time.now;
+	}
+}
+function spin_right() {
+	var current_time = this.time.now;
+	if (current_time - last_spin > tween_duration) {
+		rightTween.start();
+		last_spin = this.time.now
+	}
+}
+
+</script>
+</body>
+</html>
