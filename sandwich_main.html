@@ -16,14 +16,26 @@
 //Global Variables
 var game = new Phaser.Game(750, 1334, Phaser.AUTO, '',
 	{preload: preload, create: create, update: update});
-var wheel;							//wheel object
-var leftTween;						//wheel rotation left
-var rightTween;					//wheel rotation right
+var wheel;						//wheel object
+	var leftTweenAlpha;				//wheel rotation left (major)
+	var leftTweenBeta;				//wheel rotation left (minor)
+	var rightTweenAlpha;			//wheel rotation right (major)
+	var rightTweenBeta;				//wheel rotation right (minor)
 var tween_duration = 200;		//duration of tween (ms)
 var x_on_start;					//data storage for swipe detect
 var x_on_stop;
 var y_on_start;
 var y_on_stop;
+
+var plate_1;
+	var plate1_tweenAlpha;
+	var plate1_tweenBeta;
+var plate_2;
+	var plate2_tweenAlpha;
+	var plate2_tweenBeta;
+var plate_3;
+	var plate3_tweenAlpha;
+	var plate3_tweenBeta;
 
 //Temporary Variables
 var key1;
@@ -31,6 +43,7 @@ var key2;
 
 function preload () {
 	game.load.image("wheel_sprite", "assets/images/placeholder/placeholder_wheel.png");
+	game.load.image("plate_sprite", "assets/images/placeholder/placeholder_plate.png");
 }
 
 function create() {
@@ -46,6 +59,26 @@ function create() {
 	wheel.x = game.width/2;
 	wheel.y = game.height;
 	wheel.angle -= 45;
+	//Creation and positioning of the plates (children of the wheel)
+	plate_1 = game.add.sprite(0, 0, 'plate_sprite');
+	wheel.addChild(plate_1);
+	plate_1.anchor.set(0.5, 0.5);
+	plate_1.x = 300;
+	plate_1.y = 300;
+	plate_1.angle -= 45;
+	plate_2 = game.add.sprite(0, 0, 'plate_sprite');
+	wheel.addChild(plate_2);
+	plate_2.anchor.set(0.5, 0.5);
+	plate_2.x = -300;
+	plate_2.y = -300;
+	plate_2.angle += 135;
+	plate_3 = game.add.sprite(0, 0, 'plate_sprite');
+	wheel.addChild(plate_3);
+	plate_3.anchor.set(0.5, 0.5);
+	plate_3.x = 300;
+	plate_3.y = -300;
+	plate_3.angle += 45;
+	
 
 	//Defining of the wheel-spin tweens
 	leftTweenAlpha = game.add.tween(wheel).to({angle: "-110"}, tween_duration, Phaser.Easing.Quadratic.InOut);
@@ -54,6 +87,8 @@ function create() {
 	rightTweenBeta = game.add.tween(wheel).to({angle: "+20"}, tween_duration, Phaser.Easing.Quadratic.InOut);
 	leftTweenAlpha.chain(rightTweenBeta);
 	rightTweenAlpha.chain(leftTweenBeta);
+	//Defining of the plate tweens
+	plate1_tweenAlpha = game.add.tween(plate_1).to({x: "+100", y: "+100"}, tween_duration, Phaser.Easing.Quadratic.InOut);
 
 	//Defining function call when mouse is clicked/released
 	game.input.onDown.add(onClick, this);
