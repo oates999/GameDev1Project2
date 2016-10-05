@@ -64,7 +64,6 @@ function preload () {
 	game.load.image("plate_sprite", "assets/images/big_plate.png");
 	//Ingredient Objects
 	game.load.image("bread_sprite", "assets/images/bread.png");
-	possibleItems.push("bread_sprite");
 	game.load.image("cheese_sprite", "assets/images/cheese.png");
 	possibleItems.push("cheese_sprite");
 	game.load.image("onion_sprite", "assets/images/onion.png");
@@ -187,6 +186,10 @@ function update() {
         fallingItems.push(newItem);
         nextFall = fallTimeMin + game.time.time + Math.random() * fallTimeMax;
     }
+    //check collision with a plate or anything grouped to it
+    //if so merge them into a group that moves together
+
+    //if a lone sprite hits the bottom edge of the screen, kill it
 }
 
 //Function called on left-click start
