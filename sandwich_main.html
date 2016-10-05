@@ -13,18 +13,37 @@
 <body>
 <script type="text/javascript">
 
+  ///////////////////////////////////////////
+ //		GLOBAL Variables 						//
+///////////////////////////////////////////
 var game = new Phaser.Game(750, 1334, Phaser.AUTO, '',
 	{preload: preload, create: create, update: update});
-//Global Variables
-var wheel;
-var leftTween;
-var rightTween;
-var tween_duration = 200;
-var last_spin;
-
-//Temporary Variables
-var key1;
-var key2;
+//Mouse Controls
+var x_on_start;					//data storage for swipe detect
+var x_on_stop;
+var y_on_start;
+var y_on_stop;
+//Functional Objects
+var wheel;							//wheel object
+	var leftTweenAlpha;			//		wheel rotation left (major)
+	var leftTweenBeta;			//		wheel rotation left (minor)
+	var rightTweenAlpha;			//		wheel rotation right (major)
+	var rightTweenBeta;			//		wheel rotation right (minor)
+	var tween_duration = 200;	//		duration of tween (ms)
+var plate_1;						//green quadrant plate object
+	var plate1_tweenAlpha;		//		plate hop up
+	var plate1_tweenBeta;		//		plate hop down
+var plate_2;						//purple quadrant plate object
+	var plate2_tweenAlpha;		//		plate hop up
+	var plate2_tweenBeta;		//		plate hop down
+var plate_3;						//blue quadrant plate object
+	var plate3_tweenAlpha;		//		plate hop up
+	var plate3_tweenBeta;		//		plate hop down
+//Ingredients
+var ingredient_amount = 10;
+//Background Objects
+var kitchen_0;
+var kitchen_1;
 
 //falling objects
 //list of all possible, randomly choose 1 and drop it from the top. Slightly random time between drops. 
@@ -38,39 +57,122 @@ var toDrop;
 var newItem;
 var fallingItems = [];
 
-
-function preload() {
-
-    //load wheel
-    game.load.image("wheel_sprite", "assets/images/placeholder/placeholder_wheel.png");
-    //load falling food assests
-    game.load.image("tomato", "assets/images/placeholder/tomato.png");
-    possibleItems.push("tomato");
-
+   
+function preload () {
+	//Functional Objects
+	game.load.image("wheel_sprite", "assets/images/placeholder/placeholder_wheel.png");
+	game.load.image("plate_sprite", "assets/images/big_plate.png");
+	//Ingredient Objects
+	game.load.image("bread_sprite", "assets/images/bread.png");
+	possibleItems.push("bread_sprite");
+	game.load.image("cheese_sprite", "assets/images/cheese.png");
+	possibleItems.push("cheese_sprite");
+	game.load.image("onion_sprite", "assets/images/onion.png");
+	possibleItems.push("onion_sprite");
+	game.load.image("tomato_sprite", "assets/images/tomato.png");
+	possibleItems.push("tomato_sprite");
+	game.load.image("lettuce_sprite", "assets/images/lettuce.png");
+	possibleItems.push("lettuce_sprite");
+	game.load.image("ham_sprite", "assets/images/ham.png");
+	possibleItems.push("ham_sprite");
+	game.load.image("turkey_sprite", "assets/images/turkey.png");
+	possibleItems.push("turkey_sprite");
+	game.load.image("peanutbutter_sprite", "assets/images/peanutbutter.png");
+	possibleItems.push("peanutbutter_sprite");
+	game.load.image("jelly_sprite", "assets/images/jelly.png");
+	possibleItems.push("jelly_sprite");
+	game.load.image("bacon_sprite", "assets/images/bacon.png");
+	possibleItems.push("bacon_sprite");
+	game.load.image("pickle_sprite", "assets/images/pickle.png");
+	possibleItems.push("pickle_sprite");
+	//Background Objects
+	game.load.image("kitchen_back", "assets/images/kitchen_back.png");
+	game.load.image("kitchen_front", "assets/images/kitchen_front.png");
+	game.load.image("diner_floor", "assets/images/diner_floor.png");
+	game.load.image("floor_gradient", "assets/images/diner_floor_gradient.png");
 }
 
 function create() {
-
-
     //set lastfall to the current time
     nextFall = game.time.time + Math.random() * fallTimeMax;
 
 	game.physics.startSystem(Phaser.Physics.ARCADE);
+	game.input.mouse.capture = true;
+
+	//Creation and postioning of background sprites
+	kitchen_0 = game.add.sprite(game.width/2, 0, "kitchen_back");
+	kitchen_1 = game.add.sprite(game.width/2, 0, "kitchen_front");
+	kitchen_0.anchor.set(0.5, 0);
+	kitchen_1.anchor.set(0.5, 0);
+	floor = game.add.sprite(game.width/2, game.height, "diner_floor");
+	gradient = game.add.sprite(game.width/2, game.height, "floor_gradient");
+	floor.anchor.set(0.5, 1);
+	gradient.anchor.set(0.5, 1);
+
+	//Creation and positioning of the wheel
 	wheel = game.add.sprite(0, 0, "wheel_sprite");
+	wheel.inputEnabled = true;
 	wheel.width = 700;
 	wheel.height = 700;
 	wheel.anchor.set(0.5, 0.5);
 	wheel.x = game.width/2;
-	wheel.y = game.height - 250;
+	wheel.y = game.height + wheel.height/8;
 	wheel.angle -= 45;
 
-	leftTween = game.add.tween(wheel).to({angle: "-90"}, tween_duration, Phaser.Easing.Linear.None, true, 100);
-	rightTween = game.add.tween(wheel).to({angle: "+90"}, tween_duration, Phaser.Easing.Linear.None, true, 100);
+	//Creation and positioning of the plates (children of the wheel)
+	plate_1 = game.add.sprite(0, 0, 'plate_sprite');
+	wheel.addChild(plate_1);
+	plate_1.anchor.set(0.5, 0.5);
+	plate_1.x = 300;
+	plate_1.y = 300;
+	plate_1.angle += 135;
+	plate_2 = game.add.sprite(0, 0, 'plate_sprite');
+	wheel.addChild(plate_2);
+	plate_2.anchor.set(0.5, 0.5);
+	plate_2.x = -300;
+	plate_2.y = -300;
+	plate_2.angle -= 45;
+	plate_3 = game.add.sprite(0, 0, 'plate_sprite');
+	wheel.addChild(plate_3);
+	plate_3.anchor.set(0.5, 0.5);
+	plate_3.x = 300;
+	plate_3.y = -300;
+	plate_3.angle += 45;
 
-	key1 = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
-	key1.onDown.add(spin_left, this);
-	key2 = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
-	key2.onDown.add(spin_right, this);
+	//Defining of the wheel-spin tweens
+	leftTweenAlpha = game.add.tween(wheel).to({angle: "-110"}, tween_duration,
+		Phaser.Easing.Quadratic.InOut);
+	leftTweenBeta = game.add.tween(wheel).to({angle: "-20"}, tween_duration,
+		Phaser.Easing.Quadratic.InOut);
+	rightTweenAlpha = game.add.tween(wheel).to({angle: "+110"}, tween_duration,
+		Phaser.Easing.Quadratic.InOut);
+	rightTweenBeta = game.add.tween(wheel).to({angle: "+20"}, tween_duration,
+		Phaser.Easing.Quadratic.InOut);
+	leftTweenAlpha.chain(rightTweenBeta);
+	rightTweenAlpha.chain(leftTweenBeta);
+
+	//Defining of the plate tweens
+	plate1_tweenAlpha = game.add.tween(plate_1).to({x: "+100", y: "+100"}, tween_duration/2,
+		Phaser.Easing.Quadratic.In);
+	plate1_tweenBeta = game.add.tween(plate_1).to({x: "-100", y: "-100"}, tween_duration/2,
+		Phaser.Easing.Quadratic.Out);
+	plate1_tweenAlpha.chain(plate1_tweenBeta);
+
+	plate2_tweenAlpha = game.add.tween(plate_2).to({x: "-100", y: "-100"}, tween_duration/2,
+		Phaser.Easing.Quadratic.In);
+	plate2_tweenBeta = game.add.tween(plate_2).to({x: "+100", y: "+100"}, tween_duration/2,
+		Phaser.Easing.Quadratic.Out);
+	plate2_tweenAlpha.chain(plate2_tweenBeta);
+
+	plate3_tweenAlpha = game.add.tween(plate_3).to({x: "+100", y: "-100"}, tween_duration/2,
+		Phaser.Easing.Quadratic.In);
+	plate3_tweenBeta = game.add.tween(plate_3).to({x: "-100", y: "+100"}, tween_duration/2,
+		Phaser.Easing.Quadratic.Out);
+	plate3_tweenAlpha.chain(plate3_tweenBeta);
+
+	//Defining function call when mouse is clicked/released
+	game.input.onDown.add(onClick, this);
+	game.input.onUp.add(onRelease, this);
 }
 
 function update() {
@@ -87,19 +189,119 @@ function update() {
     }
 }
 
-function spin_left() {
-	var current_time = this.time.now;
-	if (current_time - last_spin > tween_duration) {
-		leftTween.start();
-		last_spin = this.time.now;
+//Function called on left-click start
+function onClick() {
+	x_on_start = game.input.mousePointer.x;
+	y_on_start = game.input.mousePointer.y;
+	generateSandwich();
+}
+//Function called on left-click release
+function onRelease() {
+	x_on_stop = game.input.mousePointer.x;
+	y_on_stop = game.input.mousePointer.y;
+	var distX = x_on_stop - x_on_start;
+	var distY = y_on_stop - y_on_start;
+	//Swipe was horizontal (distX more that twice as large as distY)
+	if (Math.abs(distX) > Math.abs(distY)*2 && Math.abs(distX) > 10) {
+		//Left Swipe
+		if (distX < 0) {
+			if (wheel.angle % 90 === 45 || wheel.angle % 90 === -45)
+				leftTweenAlpha.start();
+		}
+		//Right Swipe
+		else {
+			if (wheel.angle % 90 === 45 || wheel.angle % 90 === -45)
+				rightTweenAlpha.start();
+		}
+	}
+	else if (Math.abs(distY) > Math.abs(distX)*2 && Math.abs(distY) > 10) {
+		//Up Swipe
+		if (distY < 0) {
+			//Purple Quadrant is up
+			if (wheel.angle % 360 === 45 || wheel.angle % 360 === -315) {
+				plate2_tweenAlpha.start();
+			}
+			//Trash Quadrant is up
+			else if (wheel.angle % 360 === 135 || wheel.angle % 360 === -225) {
+				
+			}
+			//Green Quadrant is up
+			else if (wheel.angle % 360 === 225 || wheel.angle % 360 === -135) {
+				plate1_tweenAlpha.start();
+			}
+			//Blue Quadrant is up
+			else if (wheel.angle % 360 === 315 || wheel.angle % 360 === -45) {
+				plate3_tweenAlpha.start();
+			}
+		}
 	}
 }
-function spin_right() {
-	var current_time = this.time.now;
-	if (current_time - last_spin > tween_duration) {
-		rightTween.start();
-		last_spin = this.time.now
+
+//Function called to generate sandwich recipe
+function generateSandwich() {
+	var sandwich = game.add.sprite(game.input.mousePointer.x, game.input.mousePointer.y, "bread_sprite");
+	sandwich.anchor.set(0.5, 0.5);
+	sandwich.width = 0.8 * sandwich.width;
+	var sandwich_code = "";
+	var sandwich_height = 0;
+	var sandwich_size = game.rnd.integerInRange(2, 6);
+	for (var i = 0; i < sandwich_size; ++i) {
+		var ingredient_number = game.rnd.integerInRange(0, ingredient_amount - 1);
+		var next_ingredient;
+		if (ingredient_number === 0) {
+			next_ingredient = game.add.sprite(0, 0, "cheese_sprite");
+			sandwich_code += "00";
+		}
+		else if (ingredient_number === 1) {
+			next_ingredient = game.add.sprite(0, 0, "onion_sprite");
+			sandwich_code += "01";
+		}
+		else if (ingredient_number === 2) {
+			next_ingredient = game.add.sprite(0, 0, "tomato_sprite");
+			sandwich_code += "02";
+		}
+		else if (ingredient_number === 3) {
+			next_ingredient = game.add.sprite(0, 0, "lettuce_sprite");
+			sandwich_code += "03";
+		}
+		else if (ingredient_number === 4) {
+			next_ingredient = game.add.sprite(0, 0, "ham_sprite");
+			sandwich_code += "04";
+		}
+		else if (ingredient_number === 5) {
+			next_ingredient = game.add.sprite(0, 0, "turkey_sprite");
+			sandwich_code += "05";
+		}
+		else if (ingredient_number === 6) {
+			next_ingredient = game.add.sprite(0, 0, "peanutbutter_sprite");
+			sandwich_code += "06";
+		}
+		else if (ingredient_number === 7) {
+			next_ingredient = game.add.sprite(0, 0, "jelly_sprite");
+			sandwich_code += "07";
+		}
+		else if (ingredient_number === 8) {
+			next_ingredient = game.add.sprite(0, 0, "bacon_sprite");
+			sandwich_code += "08";
+		}
+		else if (ingredient_number === 9) {
+			next_ingredient = game.add.sprite(0, 0, "pickle_sprite");
+			sandwich_code += "09";
+		}
+		next_ingredient.anchor.set(0.5, 0.5);
+		sandwich.addChild(next_ingredient);
+		next_ingredient.x = game.rnd.integerInRange(-15, 15);
+		sandwich_height += game.rnd.integerInRange(16, 20);
+		next_ingredient.y = -1 * sandwich_height;
 	}
+	var sandwich_top = game.add.sprite(0, 0, "bread_sprite");
+	sandwich_top.anchor.set(0.5, 0.5);
+	sandwich.addChild(sandwich_top);
+	sandwich_height += game.rnd.integerInRange(18, 20);
+	sandwich_top.y = -1 * sandwich_height;
+
+	var style = {font: "14px Arial", fill: "#ff0044", align: "center"};
+	game.add.text(game.input.mousePointer.x, game.input.mousePointer.y + 40, sandwich_code, style);
 }
 
 </script>
