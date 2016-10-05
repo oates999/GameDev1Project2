@@ -26,13 +26,36 @@ var last_spin;
 var key1;
 var key2;
 
-function preload () {
-	game.load.image("wheel_sprite", "assets/images/placeholder/placeholder_wheel.png");
+//falling objects
+//list of all possible, randomly choose 1 and drop it from the top. Slightly random time between drops. 
+var possibleItems = [];
+var nextFall;
+var fallTimeMin = 2000;
+var fallTimeMax = 4000;
+var fallSpeed;
+
+var toDrop;
+var newItem;
+var fallingItems = [];
+
+
+function preload() {
+
+    //load wheel
+    game.load.image("wheel_sprite", "assets/images/placeholder/placeholder_wheel.png");
+    //load falling food assests
+    game.load.image("tomato", "assets/images/placeholder/tomato.png");
+    possibleItems.push("tomato");
+
 }
 
 function create() {
-	game.physics.startSystem(Phaser.Physics.ARCADE);
 
+
+    //set lastfall to the current time
+    nextFall = game.time.time + Math.random() * fallTimeMax;
+
+	game.physics.startSystem(Phaser.Physics.ARCADE);
 	wheel = game.add.sprite(0, 0, "wheel_sprite");
 	wheel.width = 700;
 	wheel.height = 700;
@@ -51,7 +74,17 @@ function create() {
 }
 
 function update() {
-
+    if (game.time.time > nextFall) {
+        //generate a random number to determine which ingredient to drop
+        toDrop = Math.floor(Math.random() * (possibleItems.length - 1));
+        newItem = game.add.sprite(game.width / 2, 0, possibleItems[toDrop]);
+        game.physics.enable(newItem);
+        newItem.anchor.set(0.5);
+        newItem.body.maxVelocity.set(300);
+        newItem.body.acceleration.y = 100;
+        fallingItems.push(newItem);
+        nextFall = fallTimeMin + game.time.time + Math.random() * fallTimeMax;
+    }
 }
 
 function spin_left() {
