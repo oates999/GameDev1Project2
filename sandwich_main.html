@@ -52,20 +52,22 @@ function preload () {
 	game.load.image("wheel_sprite", "assets/images/placeholder/placeholder_wheel.png");
 	game.load.image("plate_sprite", "assets/images/big_plate.png");
 	//Ingredient Objects
-	game.load.image("bread_sprite", "assets/images/cheese.png");
+	game.load.image("bread_sprite", "assets/images/bread.png");
 	game.load.image("cheese_sprite", "assets/images/cheese.png");
 	game.load.image("onion_sprite", "assets/images/onion.png");
 	game.load.image("tomato_sprite", "assets/images/tomato.png");
-	game.load.image("lettuce_sprite", "assets/images/tomato.png");
-	game.load.image("ham_sprite", "assets/images/tomato.png");
-	game.load.image("turkey_sprite", "assets/images/tomato.png");
-	game.load.image("peanutbutter_sprite", "assets/images/tomato.png");
-	game.load.image("jelly_sprite", "assets/images/tomato.png");
-	game.load.image("bacon_sprite", "assets/images/tomato.png");
-	game.load.image("pickle_sprite", "assets/images/tomato.png");
+	game.load.image("lettuce_sprite", "assets/images/lettuce.png");
+	game.load.image("ham_sprite", "assets/images/ham.png");
+	game.load.image("turkey_sprite", "assets/images/turkey.png");
+	game.load.image("peanutbutter_sprite", "assets/images/peanutbutter.png");
+	game.load.image("jelly_sprite", "assets/images/jelly.png");
+	game.load.image("bacon_sprite", "assets/images/bacon.png");
+	game.load.image("pickle_sprite", "assets/images/pickle.png");
 	//Background Objects
 	game.load.image("kitchen_back", "assets/images/kitchen_back.png");
 	game.load.image("kitchen_front", "assets/images/kitchen_front.png");
+	game.load.image("diner_floor", "assets/images/diner_floor.png");
+	game.load.image("floor_gradient", "assets/images/diner_floor_gradient.png");
 }
 
 function create() {
@@ -77,6 +79,10 @@ function create() {
 	kitchen_1 = game.add.sprite(game.width/2, 0, "kitchen_front");
 	kitchen_0.anchor.set(0.5, 0);
 	kitchen_1.anchor.set(0.5, 0);
+	floor = game.add.sprite(game.width/2, game.height, "diner_floor");
+	gradient = game.add.sprite(game.width/2, game.height, "floor_gradient");
+	floor.anchor.set(0.5, 1);
+	gradient.anchor.set(0.5, 1);
 
 	//Creation and positioning of the wheel
 	wheel = game.add.sprite(0, 0, "wheel_sprite");
@@ -200,7 +206,9 @@ function onRelease() {
 function generateSandwich() {
 	var sandwich = game.add.sprite(game.input.mousePointer.x, game.input.mousePointer.y, "bread_sprite");
 	sandwich.anchor.set(0.5, 0.5);
-	var sandwich_code = "-";
+	sandwich.width = 0.8 * sandwich.width;
+	var sandwich_code = "";
+	var sandwich_height = 0;
 	var sandwich_size = game.rnd.integerInRange(2, 6);
 	for (var i = 0; i < sandwich_size; ++i) {
 		var ingredient_number = game.rnd.integerInRange(0, ingredient_amount - 1);
@@ -248,12 +256,14 @@ function generateSandwich() {
 		next_ingredient.anchor.set(0.5, 0.5);
 		sandwich.addChild(next_ingredient);
 		next_ingredient.x = game.rnd.integerInRange(-15, 15);
-		next_ingredient.y = (-20) * (i+1);
+		sandwich_height += game.rnd.integerInRange(16, 20);
+		next_ingredient.y = -1 * sandwich_height;
 	}
 	var sandwich_top = game.add.sprite(0, 0, "bread_sprite");
 	sandwich_top.anchor.set(0.5, 0.5);
 	sandwich.addChild(sandwich_top);
-	sandwich_top.y = (-20) * (sandwich_size + 1);
+	sandwich_height += game.rnd.integerInRange(18, 20);
+	sandwich_top.y = -1 * sandwich_height;
 
 	var style = {font: "14px Arial", fill: "#ff0044", align: "center"};
 	game.add.text(game.input.mousePointer.x, game.input.mousePointer.y + 40, sandwich_code, style);
