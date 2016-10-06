@@ -41,6 +41,14 @@ var plate_3;						//blue quadrant plate object
 	var plate3_tweenBeta;		//		plate hop down
 //Ingredients
 var ingredient_amount = 10;
+var possibleItems = [];
+var nextFall;
+var fallTimeMin = 2000;
+var fallTimeMax = 4000;
+var fallSpeed;
+var toDrop;
+var newItem;
+var fallingItems = [];
 //Background Objects
 var kitchen_0;
 var kitchen_1;
@@ -54,15 +62,25 @@ function preload () {
 	//Ingredient Objects
 	game.load.image("bread_sprite", "assets/images/bread.png");
 	game.load.image("cheese_sprite", "assets/images/cheese.png");
+	possibleItems.push("cheese_sprite");
 	game.load.image("onion_sprite", "assets/images/onion.png");
+	possibleItems.push("onion_sprite");
 	game.load.image("tomato_sprite", "assets/images/tomato.png");
+	possibleItems.push("tomato_sprite");
 	game.load.image("lettuce_sprite", "assets/images/lettuce.png");
+	possibleItems.push("lettuce_sprite");
 	game.load.image("ham_sprite", "assets/images/ham.png");
+	possibleItems.push("ham_sprite");
 	game.load.image("turkey_sprite", "assets/images/turkey.png");
+	possibleItems.push("turkey_sprite");
 	game.load.image("peanutbutter_sprite", "assets/images/peanutbutter.png");
+	possibleItems.push("peanutbutter_sprite");
 	game.load.image("jelly_sprite", "assets/images/jelly.png");
+	possibleItems.push("jelly_sprite");
 	game.load.image("bacon_sprite", "assets/images/bacon.png");
+	possibleItems.push("bacon_sprite");
 	game.load.image("pickle_sprite", "assets/images/pickle.png");
+	possibleItems.push("pickle_sprite");
 	//Background Objects
 	game.load.image("kitchen_back", "assets/images/kitchen_back.png");
 	game.load.image("kitchen_front", "assets/images/kitchen_front.png");
@@ -145,13 +163,26 @@ function create() {
 		Phaser.Easing.Quadratic.Out);
 	plate3_tweenAlpha.chain(plate3_tweenBeta);
 
+	//set lastfall to the current time
+    nextFall = game.time.time + Math.random() * fallTimeMax;
+
 	//Defining function call when mouse is clicked/released
 	game.input.onDown.add(onClick, this);
 	game.input.onUp.add(onRelease, this);
 }
 
 function update() {
-
+	if (game.time.time > nextFall) {
+        //generate a random number to determine which ingredient to drop
+        toDrop = Math.floor(Math.random() * (possibleItems.length - 1));
+        newItem = game.add.sprite(game.width / 2, 0, possibleItems[toDrop]);
+        game.physics.enable(newItem);
+        newItem.anchor.set(0.5);
+        newItem.body.maxVelocity.set(300);
+        newItem.body.acceleration.y = 100;
+        fallingItems.push(newItem);
+        nextFall = fallTimeMin + game.time.time + Math.random() * fallTimeMax;
+    }
 }
 
 //Function called on left-click start
@@ -210,54 +241,83 @@ function generateSandwich() {
 	var sandwich_code = "";
 	var sandwich_height = 0;
 	var sandwich_size = game.rnd.integerInRange(2, 6);
+	var letter_mod = 2;
 	for (var i = 0; i < sandwich_size; ++i) {
 		var ingredient_number = game.rnd.integerInRange(0, ingredient_amount - 1);
 		var next_ingredient;
 		if (ingredient_number === 0) {
 			next_ingredient = game.add.sprite(0, 0, "cheese_sprite");
 			sandwich_code += "00";
+			var ingredient_text = game.add.text(0, 0, "C", {font: "36px Arial Black", fill: "#ffd400"});
+			ingredient_text.stroke = "#ddcb71";
 		}
 		else if (ingredient_number === 1) {
 			next_ingredient = game.add.sprite(0, 0, "onion_sprite");
 			sandwich_code += "01";
+			var ingredient_text = game.add.text(0, 0, "O", {font: "36px Arial Black", fill: "#deacee9"});
+			ingredient_text.stroke = "#dbd4db";
 		}
 		else if (ingredient_number === 2) {
 			next_ingredient = game.add.sprite(0, 0, "tomato_sprite");
 			sandwich_code += "02";
+			var ingredient_text = game.add.text(0, 0, "T", {font: "36px Arial Black", fill: "#d81313"});
+			ingredient_text.stroke = "#af5252";
 		}
 		else if (ingredient_number === 3) {
 			next_ingredient = game.add.sprite(0, 0, "lettuce_sprite");
 			sandwich_code += "03";
+			var ingredient_text = game.add.text(0, 0, "L", {font: "36px Arial Black", fill: "#52bf28"});
+			ingredient_text.stroke = "#8eba7c";
 		}
 		else if (ingredient_number === 4) {
 			next_ingredient = game.add.sprite(0, 0, "ham_sprite");
 			sandwich_code += "04";
+			var ingredient_text = game.add.text(0, 0, "H", {font: "36px Arial Black", fill: "#edc0cc"});
+			ingredient_text.stroke = "#edd3da";
 		}
 		else if (ingredient_number === 5) {
 			next_ingredient = game.add.sprite(0, 0, "turkey_sprite");
 			sandwich_code += "05";
+			var ingredient_text = game.add.text(0, 0, "T", {font: "36px Arial Black", fill: "#f2e5dc"});
+			ingredient_text.stroke = "#a58d7a";
 		}
 		else if (ingredient_number === 6) {
 			next_ingredient = game.add.sprite(0, 0, "peanutbutter_sprite");
 			sandwich_code += "06";
+			var ingredient_text = game.add.text(0, 0, "P", {font: "36px Arial Black", fill: "#8c5105"});
+			ingredient_text.stroke = "#a58151";
 		}
 		else if (ingredient_number === 7) {
 			next_ingredient = game.add.sprite(0, 0, "jelly_sprite");
 			sandwich_code += "07";
+			var ingredient_text = game.add.text(0, 0, "J", {font: "36px Arial Black", fill: "#9624af"});
+			ingredient_text.stroke = "#aa79b5";
 		}
 		else if (ingredient_number === 8) {
 			next_ingredient = game.add.sprite(0, 0, "bacon_sprite");
 			sandwich_code += "08";
+			var ingredient_text = game.add.text(0, 0, "B", {font: "36px Arial Black", fill: "#87270d"});
+			ingredient_text.stroke = "#a04b0e";
 		}
 		else if (ingredient_number === 9) {
 			next_ingredient = game.add.sprite(0, 0, "pickle_sprite");
 			sandwich_code += "09";
+			var ingredient_text = game.add.text(0, 0, "P", {font: "36px Arial Black", fill: "#7f990c"});
+			ingredient_text.stroke = "#b1c166";
 		}
 		next_ingredient.anchor.set(0.5, 0.5);
 		sandwich.addChild(next_ingredient);
 		next_ingredient.x = game.rnd.integerInRange(-15, 15);
 		sandwich_height += game.rnd.integerInRange(16, 20);
 		next_ingredient.y = -1 * sandwich_height;
+		ingredient_text.anchor.set(0.5, 0.5);
+		sandwich.addChild(ingredient_text);
+		ingredient_text.strokeThickness = 8;
+		ingredient_text.setShadow(2, 2, "#333333", 2, true, false);
+		ingredient_text.x = (36 * i) - sandwich.width/2.5;
+		ingredient_text.y = 46 + letter_mod;
+		ingredient_text.angle = ingredient_text.angle + game.rnd.integerInRange(-10, 10);
+		letter_mod = letter_mod * -1;
 	}
 	var sandwich_top = game.add.sprite(0, 0, "bread_sprite");
 	sandwich_top.anchor.set(0.5, 0.5);
