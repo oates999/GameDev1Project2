@@ -56,7 +56,12 @@ var conveyor_belt;
 var active_recipes = [];
 var active_recipe_images = [];
 var active_sandwiches = [];
-
+var active_sandwich_images = [];
+//Rendering Groups
+var background_layer;					//background, recipe images
+var foreground_layer;					//wheel, sandwiches, particles
+var superforeground_layer;				//falling ingredients
+var userinterface_layer;				//pause menu, menu buttons, score
 //Temporary Variables
 
 function preload () {
@@ -100,6 +105,12 @@ function create() {
 	game.physics.startSystem(Phaser.Physics.ARCADE);
 	game.input.mouse.capture = true;
 
+	//Layer Ordering
+	background_layer = game.add.group();
+	foreground_layer = game.add.group();
+	superforeground_layer = game.add.group();
+	userinterface_layer = game.add.group();
+
 	//Creation and postioning of background sprites
 	kitchen_0 = game.add.sprite(game.width/2, 0, "kitchen_back");
 	kitchen_1 = game.add.sprite(game.width/2, 0, "kitchen_front");
@@ -112,6 +123,12 @@ function create() {
 	floor.anchor.set(0.5, 1);
 	gradient.anchor.set(0.5, 1);
 
+	background_layer.add(kitchen_0);
+	background_layer.add(kitchen_1);
+	background_layer.add(conveyor_belt);
+	background_layer.add(floor);
+	background_layer.add(gradient);
+
 	//Creation and positioning of the wheel
 	wheel = game.add.sprite(0, 0, "wheel_sprite");
 	wheel.inputEnabled = true;
@@ -121,6 +138,8 @@ function create() {
 	wheel.x = game.width/2;
 	wheel.y = game.height + wheel.height/8;
 	wheel.angle -= 45;
+
+	foreground_layer.add(wheel);
 
 	//Creation and positioning of the plates (children of the wheel)
 	plate_1 = game.add.sprite(0, 0, 'plate_sprite');
@@ -174,7 +193,7 @@ function create() {
 	plate3_tweenAlpha.chain(plate3_tweenBeta);
 
 	//set lastfall to the current time
-	 nextFall = game.time.time + Math.random() * fallTimeMax;
+	nextFall = game.time.time + Math.random() * fallTimeMax;
 
 	//Defining function call when mouse is clicked/released
 	game.input.onDown.add(onClick, this);
@@ -182,6 +201,7 @@ function create() {
 }
 
 function update() {
+	/*
 	if (game.time.time > nextFall) {
 		//generate a random number to determine which ingredient to drop
 		toDrop = Math.floor(Math.random() * (possibleItems.length - 1));
@@ -193,6 +213,7 @@ function update() {
 		fallingItems.push(newItem);
 		nextFall = fallTimeMin + game.time.time + Math.random() * fallTimeMax;
 	}
+	*/
 }
 
 //Function called on left-click start
@@ -246,10 +267,13 @@ function onRelease() {
 //Function called to generate sandwich recipe
 function generateSandwich() {
 	if (active_recipes.length === 4) {
-		nix_recipe(game.rnd.integerInRange(0, 2));
+		var index = game.rnd.integerInRange(0, 3);
+		nix_sandwich(index);
+		nix_recipe(index);
 	}
 	var sandwich = game.add.sprite(0, 0, "bread_sprite");
 	var recipe_image = game.add.sprite(0, 0, "recipe_backing");
+	background_layer.add(recipe_image);
 	recipe_image.anchor.set(0.5, 0.5);
 	recipe_image.alpha = 0;
 	recipe_image.addChild(sandwich);
@@ -379,8 +403,8 @@ function check_plates_for_recipe() {
 			if (sandwich_copy.length !== 0)
 				break;
 			//recipe matched the plate contents
-			active_recipes.splice(i, 1);
-			active_sandwiches[0] = [];
+			nix_recipe(i);
+			nix_sandwich(0)
 			return;
 		}
 	}
@@ -406,8 +430,8 @@ function check_plates_for_recipe() {
 			if (sandwich_copy.length !== 0)
 				break;
 			//recipe matched the plate contents
-			active_recipes.splice(i, 1);
-			active_sandwiches[1] = [];
+			nix_recipe(i);
+			nix_sandwich(1);
 			return;
 		}
 	}
@@ -434,12 +458,13 @@ function check_plates_for_recipe() {
 				break;
 			//recipe matched the plate contents
 			nix_recipe(i);
-			active_sandwiches[2] = [];
+			nix_sandwich(2);
 			return;
 		}
 	}
 }
 
+//Function for killing a recipe (deletes data, handles animation, etc)
 function nix_recipe(recipe_index) {
 	var target_sprite = active_recipe_images[recipe_index];
 	for (var i = recipe_index + 1; i < active_recipe_images.length; ++i) {
@@ -456,6 +481,101 @@ function nix_recipe(recipe_index) {
 	recipe_fade_out.start();
 }
 
+//Function for killing a sandwich (deletes data, handles animation, etc)
+function nix_sandwich(sandwich_index) {
+	var target_sprite = active_sandwich_images[sandwich_index];
+	//target_sprite.addChild(emitter);
+	for (var i = 0; i < active_recipes[sandwich_index].length; i+=2) {
+		if (active_recipes[sandwich_index][i] === 0) {
+			var emitter = game.add.emitter(game.input.mousePointer.x, game.input.mousePointer.y, 200);
+			emitter.makeParticles("cheese_sprite");
+			emitter.gravity = 1000;
+			emitter.width = 100;
+			emitter.height = 100;
+			emitter.start(true, 2000, null, 1);
+		}
+		else if (active_recipes[sandwich_index][i] === 1) {
+			var emitter = game.add.emitter(game.input.mousePointer.x, game.input.mousePointer.y, 200);
+			emitter.makeParticles("onion_sprite");
+			emitter.gravity = 1000;
+			emitter.width = 100;
+			emitter.height = 100;
+			emitter.start(true, 2000, null, 1);
+		}
+		else if (active_recipes[sandwich_index][i] === 2) {
+			var emitter = game.add.emitter(game.input.mousePointer.x, game.input.mousePointer.y, 200);
+			emitter.makeParticles("tomato_sprite");
+			emitter.gravity = 1000;
+			emitter.width = 100;
+			emitter.height = 100;
+			emitter.start(true, 2000, null, 1);
+		}
+		else if (active_recipes[sandwich_index][i] === 3) {
+			var emitter = game.add.emitter(game.input.mousePointer.x, game.input.mousePointer.y, 200);
+			emitter.makeParticles("lettuce_sprite");
+			emitter.gravity = 1000;
+			emitter.width = 100;
+			emitter.height = 100;
+			emitter.start(true, 2000, null, 1);
+		}
+		else if (active_recipes[sandwich_index][i] === 4) {
+			var emitter = game.add.emitter(game.input.mousePointer.x, game.input.mousePointer.y, 200);
+			emitter.makeParticles("ham_sprite");
+			emitter.gravity = 1000;
+			emitter.width = 100;
+			emitter.height = 100;
+			emitter.start(true, 2000, null, 1);
+		}
+		else if (active_recipes[sandwich_index][i] === 5) {
+			var emitter = game.add.emitter(game.input.mousePointer.x, game.input.mousePointer.y, 200);
+			emitter.makeParticles("turkey_sprite");
+			emitter.gravity = 1000;
+			emitter.width = 100;
+			emitter.height = 100;
+			emitter.start(true, 2000, null, 1);
+		}
+		else if (active_recipes[sandwich_index][i] === 6) {
+			var emitter = game.add.emitter(game.input.mousePointer.x, game.input.mousePointer.y, 200);
+			emitter.makeParticles("peanutbutter_sprite");
+			emitter.gravity = 1000;
+			emitter.width = 100;
+			emitter.height = 100;
+			emitter.start(true, 2000, null, 1);
+		}
+		else if (active_recipes[sandwich_index][i] === 7) {
+			var emitter = game.add.emitter(game.input.mousePointer.x, game.input.mousePointer.y, 200);
+			emitter.makeParticles("jelly_sprite");
+			emitter.gravity = 1000;
+			emitter.width = 100;
+			emitter.height = 100;
+			emitter.start(true, 2000, null, 1);
+		}
+		else if (active_recipes[sandwich_index][i] === 8) {
+			var emitter = game.add.emitter(game.input.mousePointer.x, game.input.mousePointer.y, 200);
+			emitter.makeParticles("bacon_sprite");
+			emitter.gravity = 1000;
+			emitter.width = 100;
+			emitter.height = 100;
+			emitter.start(true, 2000, null, 1);
+		}
+		else if (active_recipes[sandwich_index][i] === 9) {
+			var emitter = game.add.emitter(game.input.mousePointer.x, game.input.mousePointer.y, 200);
+			emitter.makeParticles("pickle_sprite");
+			emitter.gravity = 1000;
+			emitter.width = 100;
+			emitter.height = 100;
+			emitter.start(true, 2000, null, 1);
+		}
+	}
+	var emitter = game.add.emitter(game.input.mousePointer.x, game.input.mousePointer.y, 100);
+	emitter.makeParticles("bread_sprite");
+	emitter.gravity = 1000;
+	emitter.width = 100;
+	emitter.height = 100;
+	emitter.start(true, 2000, null, 1);
+	active_sandwiches[sandwich_index] = [];
+	//var new_sandwich = game.add.sprite(0, 0, "bread_sprite");
+}
 </script>
 </body>
 </html>
