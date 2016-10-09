@@ -50,6 +50,7 @@ var fallQueue = [];
 var fallingItems;
 var falling_item_array = [];
 var falling_item_numbers = [];
+var weighted_item_spawns = [];
 //Background Objects
 var kitchen_0;
 var kitchen_1;
@@ -63,6 +64,8 @@ var active_sandwich_heights = [0, 0, 0];
 var active_plate_height;
 var active_sandwich_index = 0;
 var wheel_antimodifier;
+//User Interface Elements
+var time_remaining;
 //Rendering Groups
 var background_layer;					//background, recipe images
 var foreground_layer;					//wheel, sandwiches, particles
@@ -98,6 +101,18 @@ function preload () {
 	possibleItems.push("pickle_sprite");
 	game.load.image("mayo_sprite", "assets/images/mayo.png");
 	possibleItems.push("mayo_sprite");
+
+	game.load.image("cheese_letter", "assets/images/letters/letter_Ch.png");
+	game.load.image("onion_letter", "assets/images/letters/letter_On.png");
+	game.load.image("tomato_letter", "assets/images/letters/letter_To.png");
+	game.load.image("lettuce_letter", "assets/images/letters/letter_Le.png");
+	game.load.image("ham_letter", "assets/images/letters/letter_Ha.png");
+	game.load.image("turkey_letter", "assets/images/letters/letter_Tu.png");
+	game.load.image("peanutbutter_letter", "assets/images/letters/letter_Pe.png");
+	game.load.image("jelly_letter", "assets/images/letters/letter_Je.png");
+	game.load.image("bacon_letter", "assets/images/letters/letter_Ba.png");
+	game.load.image("pickle_letter", "assets/images/letters/letter_Pi.png");
+	game.load.image("mayo_letter", "assets/images/letters/letter_Ma.png");
 	//Background Elements
 	game.load.image("kitchen_back", "assets/images/kitchen_back.png");
 	game.load.image("kitchen_front", "assets/images/kitchen_front.png");
@@ -227,12 +242,24 @@ function create() {
 	generateSandwich();
 	generateSandwich();
 	generateSandwich();
+
+	time_remaining = game.add.text(game.width - 10, 10, "null", {font: "65px Arial", fill: "#ff00ee", align: "right"});
+	time_remaining.anchor.set(1, 0);
+	end_time = game.time.time + (1000 * 60 * 3);
 }
 
 function update() {
+	var zero_mod = "";
+	if (Math.floor((end_time - game.time.time)/(1000))%60 < 10)
+		zero_mod = "0";
+	if (game.time.time > end_time)
+		time_remaining.text = "0:00";
+	else
+		time_remaining.text = Math.floor((end_time - game.time.time)/(1000*60)) + ":" + zero_mod + Math.floor((end_time - game.time.time)/(1000))%60;
+
 	if (game.time.time > nextSpawn) {
-		var index_to_spawn = game.rnd.integerInRange(0, possibleItems.length - 1);
-		var newItem = game.add.sprite(0, 205, possibleItems[index_to_spawn]);
+		var index_to_spawn = game.rnd.integerInRange(0, weighted_item_spawns.length - 1);
+		var newItem = game.add.sprite(0, 205, possibleItems[weighted_item_spawns[index_to_spawn]]);
 		newItem.lifespan = 5000 + 300 + 600 + 100;
 		newItem.width = newItem.width * 0.4;
 		newItem.height = newItem.height * 0.6;
@@ -248,8 +275,8 @@ function update() {
 		conveyor_tween.start();
 
 		nextFall.push(game.time.time + 5000 + 300 + 600 + 100);
-		fallQueue.push(possibleItems[index_to_spawn]);
-		falling_item_numbers.push(index_to_spawn);
+		fallQueue.push(possibleItems[weighted_item_spawns[index_to_spawn]]);
+		falling_item_numbers.push(weighted_item_spawns[index_to_spawn]);
 		nextSpawn = game.time.time + 2000;
 	}
 	if (game.time.time > nextFall[0]) {
@@ -312,6 +339,9 @@ function update() {
 		active_sandwich_heights[active_sandwich_index] += game.rnd.integerInRange(16, 20);
 		active_sandwiches[active_sandwich_index].push(falling_item_numbers[0]);
 		falling_item_numbers.splice(0, 1);
+
+		if (active_sandwiches[active_sandwich_index].length > 12)
+			nix_sandwich(active_sandwich_index);
 	}
 }
 
@@ -385,79 +415,69 @@ function generateSandwich() {
 	sandwich.anchor.set(0.5, 0.5);
 	sandwich.width = 0.8 * sandwich.width;
 	var sandwich_height = 0;
-	var sandwich_size = game.rnd.integerInRange(2, 5);
+	var sandwich_size = game.rnd.integerInRange(2, 6);
 	var letter_mod = 2;
 	var letter_header = game.add.sprite(0, 0, "blank_sprite");
 	recipe_image.addChild(letter_header);
-	letter_header.x = -(sandwich_size/2 * 25);
+	letter_header.x = -(sandwich_size/2 * 18);
 	var ingredient_array = [];
 	for (var i = 0; i < sandwich_size; ++i) {
 		var ingredient_number = game.rnd.integerInRange(0, possibleItems.length - 1);
+		weighted_item_spawns.push(ingredient_number);
 		var next_ingredient;
 		if (ingredient_number === 0) {
 			next_ingredient = game.add.sprite(0, 0, "cheese_sprite");
-			var ingredient_text = game.add.text(0, 0, "C", {font: "24px Arial Black", fill: "#ffd400"});
-			ingredient_text.stroke = "#ddcb71";
+			var letter = game.add.sprite(0, 0, "cheese_letter");
 			ingredient_array.push(0);
 		}
 		else if (ingredient_number === 1) {
 			next_ingredient = game.add.sprite(0, 0, "onion_sprite");
-			var ingredient_text = game.add.text(0, 0, "O", {font: "24px Arial Black", fill: "#deacee9"});
-			ingredient_text.stroke = "#dbd4db";
+			var letter = game.add.sprite(0, 0, "onion_letter");
 			ingredient_array.push(1);
 		}
 		else if (ingredient_number === 2) {
 			next_ingredient = game.add.sprite(0, 0, "tomato_sprite");
-			var ingredient_text = game.add.text(0, 0, "T", {font: "24px Arial Black", fill: "#d81313"});
-			ingredient_text.stroke = "#af5252";
+			var letter = game.add.sprite(0, 0, "tomato_letter");
 			ingredient_array.push(2);
 		}
 		else if (ingredient_number === 3) {
 			next_ingredient = game.add.sprite(0, 0, "lettuce_sprite");
-			var ingredient_text = game.add.text(0, 0, "L", {font: "24px Arial Black", fill: "#52bf28"});
-			ingredient_text.stroke = "#8eba7c";
+			var letter = game.add.sprite(0, 0, "lettuce_letter");
 			ingredient_array.push(3);
 		}
 		else if (ingredient_number === 4) {
 			next_ingredient = game.add.sprite(0, 0, "ham_sprite");
-			var ingredient_text = game.add.text(0, 0, "H", {font: "24px Arial Black", fill: "#edc0cc"});
-			ingredient_text.stroke = "#edd3da";
+			var letter = game.add.sprite(0, 0, "ham_letter");
 			ingredient_array.push(4);
 		}
 		else if (ingredient_number === 5) {
 			next_ingredient = game.add.sprite(0, 0, "turkey_sprite");
-			var ingredient_text = game.add.text(0, 0, "T", {font: "24px Arial Black", fill: "#f2e5dc"});
-			ingredient_text.stroke = "#a58d7a";
+			var letter = game.add.sprite(0, 0, "turkey_letter");
 			ingredient_array.push(5);
 		}
 		else if (ingredient_number === 6) {
 			next_ingredient = game.add.sprite(0, 0, "peanutbutter_sprite");
-			var ingredient_text = game.add.text(0, 0, "P", {font: "24px Arial Black", fill: "#8c5105"});
-			ingredient_text.stroke = "#a58151";
+			var letter = game.add.sprite(0, 0, "peanutbutter_letter");
 			ingredient_array.push(6);
 		}
 		else if (ingredient_number === 7) {
 			next_ingredient = game.add.sprite(0, 0, "jelly_sprite");
-			var ingredient_text = game.add.text(0, 0, "J", {font: "24px Arial Black", fill: "#9624af"});
-			ingredient_text.stroke = "#aa79b5";
+			var letter = game.add.sprite(0, 0, "jelly_letter");
 			ingredient_array.push(7);
 		}
 		else if (ingredient_number === 8) {
 			next_ingredient = game.add.sprite(0, 0, "bacon_sprite");
-			var ingredient_text = game.add.text(0, 0, "B", {font: "24px Arial Black", fill: "#87270d"});
-			ingredient_text.stroke = "#333333";
+			var letter = game.add.sprite(0, 0, "bacon_letter");
 			ingredient_array.push(8);
 		}
 		else if (ingredient_number === 9) {
 			next_ingredient = game.add.sprite(0, 0, "pickle_sprite");
-			var ingredient_text = game.add.text(0, 0, "P", {font: "24px Arial Black", fill: "#7f990c"});
-			ingredient_text.stroke = "#b1c166";
+			var letter = game.add.sprite(0, 0, "pickle_letter");
 			ingredient_array.push(9);
 		}
 		else if (ingredient_number === 10) {
 			next_ingredient = game.add.sprite(0, 0, "mayo_sprite");
-			var ingredient_text = game.add.text(0, 0, "M", {font: "24px Arial Black", fill: "#7f990c"});
-			ingredient_text.stroke = "#b1c166";
+			var letter = game.add.sprite(0, 0, "mayo_letter");
 			ingredient_array.push(10);
 		}
 		next_ingredient.anchor.set(0.5, 0.5);
@@ -465,12 +485,11 @@ function generateSandwich() {
 		next_ingredient.x = game.rnd.integerInRange(-15, 15);
 		sandwich_height += game.rnd.integerInRange(16 * sandwich_scale, 20 * sandwich_scale);
 		next_ingredient.y = -1 * sandwich_height;
-		ingredient_text.anchor.set(0, 0.5);
-		letter_header.addChild(ingredient_text);
-		ingredient_text.strokeThickness = 6;
-		ingredient_text.x = (36 * (sandwich_scale + 0.1) * i);
-		ingredient_text.y = ((46 + letter_mod) * (sandwich_scale)) + 22;
-		ingredient_text.angle = ingredient_text.angle + game.rnd.integerInRange(-10, 10);
+		letter.anchor.set(0.5, 0.5);
+		letter_header.addChild(letter);
+		letter.x = (36 * (sandwich_scale + 0.1) * i);
+		letter.y = ((46 + letter_mod) * (sandwich_scale)) + 22;
+		letter.angle = letter.angle + game.rnd.integerInRange(-10, 10);
 		letter_mod = letter_mod * -1;
 	}
 	var sandwich_top = game.add.sprite(0, 0, "bread_sprite");
@@ -512,6 +531,7 @@ function check_plates_for_recipe() {
 			if (sandwich_copy.length !== 0)
 				continue;
 			//recipe matched the plate contents
+			end_time = end_time + 1000 * 8 * active_recipes[i].length;
 			nix_recipe(i);
 			complete_sandwich(0);
 			generateSandwich();
@@ -540,6 +560,7 @@ function check_plates_for_recipe() {
 			if (sandwich_copy.length !== 0)
 				continue;
 			//recipe matched the plate contents
+			end_time = end_time + 1000 * 8 * active_recipes[i].length;
 			nix_recipe(i);
 			complete_sandwich(1);
 			generateSandwich();
@@ -568,6 +589,7 @@ function check_plates_for_recipe() {
 			if (sandwich_copy.length !== 0)
 				continue;
 			//recipe matched the plate contents
+			end_time = end_time + 1000 * 8 * active_recipes[i].length;
 			nix_recipe(i);
 			complete_sandwich(1);
 			generateSandwich();
@@ -582,6 +604,14 @@ function nix_recipe(recipe_index) {
 	for (var i = recipe_index + 1; i < active_recipe_images.length; ++i) {
 		var recipe_slide = game.add.tween(active_recipe_images[i]).to({x: active_recipe_images[i].x - (active_recipe_images[i].width + 5)}, tween_duration, Phaser.Easing.Quadratic.InOut);
 		recipe_slide.start();
+	}
+	for (var i = 0; i < active_recipes[recipe_index].length; ++i) {
+		for (var j = 0; j < weighted_item_spawns.length; ++j) {
+			if (active_recipes[recipe_index][i] === weighted_item_spawns[j]) {
+				weighted_item_spawns.splice(j, 1);
+				break;
+			}
+		}
 	}
 	active_recipes.splice(recipe_index, 1);
 	active_recipe_images.splice(recipe_index, 1);
