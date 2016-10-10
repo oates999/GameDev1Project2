@@ -57,6 +57,7 @@ var kitchen_1;
 var conveyor_belt;
 //Recipe Storage
 var active_recipes = [];
+var active_recipe_timers = [];
 var active_recipe_images = [];
 var active_sandwiches = [[], [], []];
 var active_sandwich_images = [];
@@ -66,6 +67,9 @@ var active_sandwich_index = 0;
 var wheel_antimodifier;
 //User Interface Elements
 var time_remaining;
+var score_text;
+var score_amount;
+var timer_score_backing;
 //Rendering Groups
 var background_layer;					//background, recipe images
 var foreground_layer;					//wheel, sandwiches, particles
@@ -119,9 +123,11 @@ function preload () {
 	game.load.image("conveyor_belt", "assets/images/conveyorbelt.png");
 	game.load.image("diner_floor", "assets/images/diner_floor.png");
 	game.load.image("floor_gradient", "assets/images/diner_floor_gradient.png");
+	game.load.image("background_gradient", "assets/images/kitchen_backing_gradient.png");
 	//User Interface Elements
 	game.load.image("recipe_backing", "assets/images/recipe_backing.png");
 	game.load.image("blank_sprite", "assets/images/null.png");
+	game.load.image("timer_backing", "assets/images/timer_score_backing.png");
 }
 
 function create() {
@@ -134,6 +140,7 @@ function create() {
 	userinterface_layer = game.add.group();
 
 	//Creation and postioning of background sprites
+	var kitchen_backing_gradient = game.add.sprite(0, 0, "background_gradient");
 	kitchen_0 = game.add.sprite(game.width/2, 0, "kitchen_back");
 	kitchen_1 = game.add.sprite(game.width/2, 0, "kitchen_front");
 	kitchen_0.anchor.set(0.5, 0);
@@ -141,10 +148,11 @@ function create() {
 	conveyor_belt = game.add.sprite(game.width/2, 195, "conveyor_belt");
 	conveyor_belt.anchor.set(0.5, 0);
 	floor = game.add.sprite(game.width/2, game.height, "diner_floor");
-	gradient = game.add.sprite(game.width/2, game.height, "floor_gradient");
+	var gradient = game.add.sprite(game.width/2, game.height, "floor_gradient");
 	floor.anchor.set(0.5, 1);
 	gradient.anchor.set(0.5, 1);
 
+	background_layer.add(kitchen_backing_gradient);
 	background_layer.add(kitchen_0);
 	background_layer.add(kitchen_1);
 	background_layer.add(conveyor_belt);
@@ -243,9 +251,19 @@ function create() {
 	generateSandwich();
 	generateSandwich();
 
-	time_remaining = game.add.text(game.width - 10, 10, "null", {font: "65px Arial", fill: "#ff00ee", align: "right"});
+	timer_score_backing = game.add.sprite(0, 0, "timer_backing");
+	timer_score_backing.anchor.set(0, 0);
+
+	time_remaining = game.add.text(game.width - 30, 25, "null", {font: "65px Arial", fill: "#ff00ee", align: "right"});
 	time_remaining.anchor.set(1, 0);
 	end_time = game.time.time + (1000 * 60 * 3);
+
+	score_text = game.add.text(game.width - 30, 115, "null", {font: "38px Arial", fill: "#ff00ee", align: "right"});
+	score_text.anchor.set(1, 0);
+	score_amount = 0;
+
+	userinterface_layer.add(timer_score_backing);
+	userinterface_layer.add(time_remaining);
 }
 
 function update() {
@@ -256,6 +274,7 @@ function update() {
 		time_remaining.text = "0:00";
 	else
 		time_remaining.text = Math.floor((end_time - game.time.time)/(1000*60)) + ":" + zero_mod + Math.floor((end_time - game.time.time)/(1000))%60;
+	score_text.text = "$" + score_amount;
 
 	if (game.time.time > nextSpawn) {
 		var index_to_spawn = game.rnd.integerInRange(0, weighted_item_spawns.length - 1);
@@ -419,7 +438,7 @@ function generateSandwich() {
 	var letter_mod = 2;
 	var letter_header = game.add.sprite(0, 0, "blank_sprite");
 	recipe_image.addChild(letter_header);
-	letter_header.x = -(sandwich_size/2 * 18);
+	letter_header.x = -(sandwich_size/2 * 21);
 	var ingredient_array = [];
 	for (var i = 0; i < sandwich_size; ++i) {
 		var ingredient_number = game.rnd.integerInRange(0, possibleItems.length - 1);
@@ -532,6 +551,7 @@ function check_plates_for_recipe() {
 				continue;
 			//recipe matched the plate contents
 			end_time = end_time + 1000 * 8 * active_recipes[i].length;
+			score_amount = score_amount + 17 * (active_recipes[i].length + 2);
 			nix_recipe(i);
 			complete_sandwich(0);
 			generateSandwich();
@@ -561,6 +581,7 @@ function check_plates_for_recipe() {
 				continue;
 			//recipe matched the plate contents
 			end_time = end_time + 1000 * 8 * active_recipes[i].length;
+			score_amount = score_amount + 17 * (active_recipes[i].length + 2);
 			nix_recipe(i);
 			complete_sandwich(1);
 			generateSandwich();
@@ -590,6 +611,7 @@ function check_plates_for_recipe() {
 				continue;
 			//recipe matched the plate contents
 			end_time = end_time + 1000 * 8 * active_recipes[i].length;
+			score_amount = score_amount + 17 * (active_recipes[i].length + 2);
 			nix_recipe(i);
 			complete_sandwich(1);
 			generateSandwich();
@@ -628,9 +650,9 @@ function nix_sandwich(sandwich_index) {
 	if (active_sandwiches[sandwich_index].length < 1)
 		return;
 	var target_sprite = active_sandwich_images[sandwich_index];
-	var fade_tween = game.add.tween(target_sprite).to({alpha: 0}, 1000, Phaser.Easing.Quadratic.Out);
+	var fade_tween = game.add.tween(target_sprite).to({alpha: 0}, 500, Phaser.Easing.Quadratic.Out);
 	fade_tween.start();
-	target_sprite.lifespan = 1000;
+	target_sprite.lifespan = 500;
 	for (var i = 0; i < active_sandwiches[sandwich_index].length; ++i) {
 		if (active_sandwiches[sandwich_index][i] === 0) {
 			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (i*18), 200);
