@@ -68,7 +68,25 @@ var background_layer;					//background, recipe images
 var foreground_layer;					//wheel, sandwiches, particles
 var superforeground_layer;				//falling ingredients
 var userinterface_layer;				//pause menu, menu buttons, score
+//UI elements
+//pausing the game
+var p_text;
+var p_button;
+var resume_text;
+var paused_bg;
+var pausedTime;
+
+//main menu
+var play;
+var plau_text;
+var credits_text;
+var tutorial_text;
+var isInMenu;
+var isGameOver;
+
+
 //Temporary Variables
+var i;
 
 function preload () {
 	//Functional Elements
@@ -104,9 +122,15 @@ function preload () {
 	game.load.image("conveyor_belt", "assets/images/conveyorbelt.png");
 	game.load.image("diner_floor", "assets/images/diner_floor.png");
 	game.load.image("floor_gradient", "assets/images/diner_floor_gradient.png");
-	//User Interface Elements
+    //User Interface Elements
+	//game.load.image("titleGraphic", "assets/images/pausedBG.png");
+	game.load.image("paused_BG", "assets/images/pausedBG.png");
 	game.load.image("recipe_backing", "assets/images/recipe_backing.png");
 	game.load.image("blank_sprite", "assets/images/null.png");
+	game.load.image("button_sprite", "assets/images/pausedButton.png");
+    //main menu elements
+	game.load.image("menuBG", "assets/images/diner_floor.png");
+	game.load.image("gameOver", "assets/images/diner_floor.png");
 }
 
 function create() {
@@ -117,6 +141,62 @@ function create() {
 	foreground_layer = game.add.group();
 	superforeground_layer = game.add.group();
 	userinterface_layer = game.add.group();
+
+    //UI elements
+    //pause game
+	p_button = game.add.sprite(30, 30, 'button_sprite');
+	p_text = game.add.text(42, 50, 'PAUSE', { font: '52px Arial', fill: '#fff' });
+	paused_bg = game.add.sprite(0, 0, 'paused_BG');
+	resume_text = game.add.text(game.width / 2, game.height / 2, 'TAP TO RESUME', { font: '72px Arial', fill: '#fff' });
+	resume_text.anchor.setTo(0.5, 0.5);
+	resume_text.visible = false;
+	paused_bg.visible = false;
+	p_button.inputEnabled = true;
+	p_button.events.onInputUp.add(function () {
+	    pausedTime = game.time.time;
+	    game.paused = true;
+	    resume_text.visible = true;
+	    paused_bg.visible = true;
+	    p_button.visible = false;
+	    p_text.visible = false;
+	});
+    //Start screen
+	isInMenu = true;
+	menuBG = game.add.sprite(0, 0, "menuBG");
+	play = game.add.sprite(game.width / 2, game.height / 2, "button_sprite");
+	play.anchor.setTo(0.5);
+	play_text = game.add.text(game.width / 2, game.height / 2, "START", { font: '50px Arial', fill: '#fff' });
+	play_text.anchor.setTo(0.5);
+    //input while paused
+	game.input.onDown.add(function () {
+	    if (game.paused && !isInMenu) {
+	        nextSpawn += game.time.time - pausedTime;
+	        for (var i = 0; i < nextFall.length; i++){
+	           nextFall[i] += game.time.time - pausedTime; 
+	        }
+	        resume_text.visible = false;
+	        paused_bg.visible = false;
+	        p_button.visible = true;
+	        p_text.visible = true;
+	        game.paused = false
+	    }
+	    if (game.paused && isInMenu) {
+	        if (game.input.x > 250 && game.input.x < 650 && game.input.y > 600 && game.input.y < 730) {
+	            nextSpawn = game.time.time + 1000;
+	            isInMenu = false;
+	            game.paused = false;
+	            menuBG.destroy();
+	            play.destroy();
+	            play_text.destroy();
+	        }
+	    }
+	    if (game.paused && isGameOver) {
+	        //buttons on the game over screen. 
+	    }
+	});
+
+    
+	
 
 	//Creation and postioning of background sprites
 	kitchen_0 = game.add.sprite(game.width/2, 0, "kitchen_back");
@@ -230,6 +310,12 @@ function create() {
 }
 
 function update() {
+    if (isInMenu && !game.paused) {
+        game.paused = true;
+    }
+    if (!isInMenu && game.paused) {
+        game.paused = false;
+    }
 	if (game.time.time > nextSpawn) {
 		var index_to_spawn = game.rnd.integerInRange(0, possibleItems.length - 1);
 		var newItem = game.add.sprite(0, 205, possibleItems[index_to_spawn]);
@@ -315,6 +401,12 @@ function update() {
 	}
 }
 
+function gameOver() {
+    game.add.sprite(0, 0, "gameOver");
+    isGameOver = true;
+    game.paused = true;
+}
+
 //Function called on left-click start
 function onClick() {
 	x_on_start = game.input.mousePointer.x;
@@ -322,6 +414,7 @@ function onClick() {
 }
 //Function called on left-click release
 function onRelease() {
+
 	x_on_stop = game.input.mousePointer.x;
 	y_on_stop = game.input.mousePointer.y;
 	var distX = x_on_stop - x_on_start;
