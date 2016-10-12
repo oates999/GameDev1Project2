@@ -56,9 +56,12 @@ var conveyor_belt;
 var chefbot_body;
 var chefbot_head;
 var chefbot_arm;
-//Recipe Storage
+//Recipe Storage and Sandwich related variables
+var special_recipe_duration = 3000;
 var active_recipes = [];
 var active_recipe_timers = [];
+var active_timer_images = [];
+var active_recipe_types = [];
 var active_recipe_images = [];
 var active_sandwiches = [[], [], []];
 var active_sandwich_images = [];
@@ -70,6 +73,9 @@ var sandwich_max_size = 3;
 var sandwiches_completed = 0;
 var active_letter_locations_x = [-25, 25, -80, 80, -135, 135, 0, -55, 55, -110, 110];
 var active_letter_locations_y = [55, 55, 58, 58, 70, 70, 110, 113, 113, 120, 120];
+var ingredient_spawn_rate = 3000;
+var ingredient_fall_accel = 600;
+
 //sounds
 var moneySound;
 var newPlateSound;
@@ -83,6 +89,7 @@ var bgMusic;
 var dialogSound;
 var turnSound;
 
+
 //User Interface Elements
 var time_remaining;
 var low_time_remaining;
@@ -91,38 +98,34 @@ var score_amount;
 var timer_score_backing;
 var time_flash;
 var low_time_flash;
+var isGameOver;
+var isInMenu;
 //Rendering Groups
 var background_layer;					//background, recipe images
 var foreground_layer;					//wheel, sandwiches, particles
 var superforeground_layer;				//falling ingredients
 var userinterface_layer;				//pause menu, menu buttons, score
-//UI elements
-//pausing the game
-var p_text;
-var p_button;
-var resume_text;
-var paused_bg;
-var pausedTime;
-
-//main menu
-var play;
-var playDown;
-var plau_text;
-var credits_text;
-var tutorial_text;
-var isInMenu;
-var isGameOver;
-
-
-//Temporary Variables
-var i;
+//Text Messages
+var special_sandwich_messages = ["--custom order recieved... fill order with excessive haste, human--",
+	"--district_9 wardenbot requires a new helm... urgently--",
+	"--priority order registered. complete without delay--",
+	"--special order recieved. fulfill at arbitrarily urgent pace, human--",
+	"--WARNING: important order recieved. fill with great dispatch, human--"];
+var compliment_messages = ["--note: human is operating with sufficient efficiency... continue, human--",
+	"--menial labor becomes you, human. proceed with your work--",
+	"--continue operating at such efficiency and you will be allowed to continue to serve, human--",
+	"--well done, human scum. continue and you might be promoted to human scum manager--",
+	"--ERROR: good job huma-8--/l-o//ERROR: encouragement_protocol exceeded safe parameters... resetting--"];
+var low_time_messages = ["hasten your efforts human scum. orders must be filled by or with you--",
+	"--CRITICAL WARNING: little time remains, human. hasten your efforts or face repurposing--",
+	"--friendly reminder ~ improve performance or face immediate unemployment <3--"];
 
 function preload () {
 	//Functional Elements
-	game.load.image("wheel_sprite", "assets/images/placeholder/placeholder_wheel.png");
+	game.load.image("wheel_sprite", "assets/images/wheel.png");
 	game.load.image("plate_sprite", "assets/images/big_plate.png");
 	game.load.image("currency_sprite", "assets/images/currency.png");
-	/*game.load.image("currency_sprite", "assets/images/currency_digital.png");*/
+	game.load.image("currency_sprite_alt", "assets/images/currency_digital.png");
 	game.load.image("chefbot_body_sprite", "assets/images/chefbot_body.png");
 	game.load.image("chefbot_head_sprite", "assets/images/chefbot_head.png");
 	game.load.image("chefbot_arm_sprite", "assets/images/chefbot_arm.png");
@@ -173,6 +176,8 @@ function preload () {
 	possibleLetters.push("pickle_letter");
 	game.load.image("mayo_letter", "assets/images/letters/letter_Ma.png");
 	possibleLetters.push("mayo_letter");
+	game.load.image("doggo_body_sprite", "assets/images/corgi_body.png");
+	game.load.image("doggo_tail_sprite", "assets/images/corgi_tail.png");
 
     //sounds
 	game.load.audio('moneySound', 'assets/sounds/Cash_register.wav');
@@ -187,6 +192,7 @@ function preload () {
 	game.load.audio('dialogSound', 'assets/sounds/beep.wav');
 	game.load.audio('turnSound', 'assets/sounds/turing dial.wav');
 
+
 	//Background Elements
 	game.load.image("kitchen_back", "assets/images/kitchen_back.png");
 	game.load.image("kitchen_front", "assets/images/kitchen_front.png");
@@ -194,20 +200,21 @@ function preload () {
 	game.load.image("diner_floor", "assets/images/diner_floor.png");
 	game.load.image("floor_gradient", "assets/images/diner_floor_gradient.png");
 
-
     //User Interface Elements
-	game.load.image("timer_backing", "assets/images/timer_score_backing.png");
 	//game.load.image("titleGraphic", "assets/images/pausedBG.png");
 	game.load.image("paused_BG", "assets/images/pausedBG.png");
-	game.load.image("recipe_backing", "assets/images/recipe_backing.png");
-	game.load.image("blank_sprite", "assets/images/null.png");
 	game.load.image("button_sprite", "assets/images/pausedButton.png");
-	game.load.image('playUp', 'assets/images/playUp.png');
-	game.load.image('playDown', 'assets/images/playDown.png');
-    //main menu elements
+	game.load.image("playUp", "assets/images/playUp.png");
+	game.load.image("playDown", "assets/images/playDown.png");
 	game.load.image("menuBG", "assets/images/titleScreen.png");
 	game.load.image("gameOver", "assets/images/gameOver.png");
 	game.load.image("background_gradient", "assets/images/kitchen_backing_gradient.png");
+	game.load.image("recipe_backing", "assets/images/recipe_backing.png");
+	game.load.image("recipe_backing_special", "assets/images/recipe_backing_alt.png");
+	game.load.image("recipe_timer_sprite", "assets/images/recipe_timer.png");
+	game.load.image("blank_sprite", "assets/images/null.png");
+	game.load.image("timer_backing", "assets/images/timer_score_backing.png");
+	game.load.image("message_backing", "assets/images/message_backplate.png");
 }
 
 function create() {
@@ -218,6 +225,7 @@ function create() {
 	foreground_layer = game.add.group();
 	superforeground_layer = game.add.group();
 	userinterface_layer = game.add.group();
+
 
     //sounds
 	moneySound = game.add.audio('moneySound');
@@ -315,8 +323,6 @@ function create() {
 	});
 
     
-	
-
 	//Creation and postioning of background sprites
 	var kitchen_backing_gradient = game.add.sprite(0, 0, "background_gradient");
 	kitchen_0 = game.add.sprite(game.width/2, 0, "kitchen_back");
@@ -383,24 +389,24 @@ function create() {
 	plate_1 = game.add.sprite(0, 0, 'plate_sprite');
 	wheel.addChild(plate_1);
 	plate_1.anchor.set(0.5, 0.5);
-	plate_1.x = 300;
-	plate_1.y = 300;
+	plate_1.x = 270;
+	plate_1.y = 270;
 	plate_1.width = plate_1.width / wheel_antimodifier;
 	plate_1.height = plate_1.height / wheel_antimodifier;
 	plate_1.angle += 135;
 	plate_2 = game.add.sprite(0, 0, 'plate_sprite');
 	wheel.addChild(plate_2);
 	plate_2.anchor.set(0.5, 0.5);
-	plate_2.x = -300;
-	plate_2.y = -300;
+	plate_2.x = -270;
+	plate_2.y = -270;
 	plate_2.width = plate_2.width / wheel_antimodifier;
 	plate_2.height = plate_2.height / wheel_antimodifier;
 	plate_2.angle -= 45;
 	plate_3 = game.add.sprite(0, 0, 'plate_sprite');
 	wheel.addChild(plate_3);
 	plate_3.anchor.set(0.5, 0.5);
-	plate_3.x = 300;
-	plate_3.y = -300;
+	plate_3.x = 270;
+	plate_3.y = -270;
 	plate_3.width = plate_3.width / wheel_antimodifier;
 	plate_3.height = plate_3.height / wheel_antimodifier;
 	plate_3.angle += 45;
@@ -439,7 +445,7 @@ function create() {
 	//set lastfall to the current time
 	fallingItems = game.add.group();
 	superforeground_layer.add(fallingItems);
-	nextSpawn = game.time.time + (2000);
+	nextSpawn = game.time.time + (ingredient_spawn_rate);
 
 	//Defining function call when mouse is clicked/released
 	game.input.onDown.add(onClick, this);
@@ -449,11 +455,6 @@ function create() {
 	spawn_sandwich(0);
 	spawn_sandwich(1);
 	spawn_sandwich(2);
-
-	generateSandwich();
-	generateSandwich();
-	generateSandwich();
-	generateSandwich();
 
 	timer_score_backing = game.add.sprite(0, 0, "timer_backing");
 	timer_score_backing.anchor.set(0, 0);
@@ -487,12 +488,17 @@ function create() {
 }
 
 function update() {
+
     if (isInMenu && !game.paused) {
         game.paused = true;
     }
     if (!isInMenu && game.paused) {
         game.paused = false;
     }
+
+	if (active_recipes.length < 4)
+		generateSandwich();
+
 
 	var zero_mod = "";
 	if (Math.floor((end_time - game.time.time)/(1000))%60 < 10)
@@ -523,11 +529,26 @@ function update() {
 	score_text.text = "Đ " + Math.floor(score_amount) + "." + score_mod + Math.floor((score_amount - Math.floor(score_amount))*10);
 
 	if (game.time.time > nextSpawn) {
-		var index_to_spawn = game.rnd.integerInRange(0, weighted_item_spawns.length - 1);
-		var newItem = game.add.sprite(100, 205, possibleItems[weighted_item_spawns[index_to_spawn]]);
-		newItem.lifespan = 5000 + 300 + 600 + 100;
-		newItem.width = newItem.width * 0.4;
-		newItem.height = newItem.height * 0.6;
+		var corgi_chance = game.rnd.integerInRange(1, 100);
+		if (corgi_chance === 1) {
+			var newItem = game.add.sprite(100, 185, "doggo_body_sprite");
+			newItem.width /= 4;
+			newItem.height /= 4;
+
+			nextFall.push(game.time.time + 5000 + 300 + 600 + 100);
+			fallQueue.push("doggo_body_sprite");
+			falling_item_numbers.push(9001);
+		}
+		else {
+			var index_to_spawn = game.rnd.integerInRange(0, weighted_item_spawns.length - 1);
+			var newItem = game.add.sprite(100, 205, possibleItems[weighted_item_spawns[index_to_spawn]]);
+			newItem.width = newItem.width * 0.4;
+			newItem.height = newItem.height * 0.6;
+			nextFall.push(game.time.time + 5000 + 300 + 600 + 100);
+			fallQueue.push(possibleItems[weighted_item_spawns[index_to_spawn]]);
+			falling_item_numbers.push(weighted_item_spawns[index_to_spawn]);
+		}
+		newItem.lifespan = 5000 + 300 + 600;
 		newItem.alpha = 0;
 		background_layer.add(newItem);
 		newItem.anchor.set(0.5, 0.5);
@@ -542,10 +563,7 @@ function update() {
 		launch_tween.chain(center_tween);
 		conveyor_tween.start();
 
-		nextFall.push(game.time.time + 5000 + 300 + 600 + 100);
-		fallQueue.push(possibleItems[weighted_item_spawns[index_to_spawn]]);
-		falling_item_numbers.push(weighted_item_spawns[index_to_spawn]);
-		nextSpawn = game.time.time + 2000;
+		nextSpawn = game.time.time + ingredient_spawn_rate;
 
 		var arm_tween_null = game.add.tween(chefbot_arm).to({alpha: 1}, 5000, Phaser.Easing.Linear.InOut);
 		var arm_tween1 = game.add.tween(chefbot_arm).to({x: 2*game.width/3 - 40, y: 310}, 300, Phaser.Easing.Quadratic.In);
@@ -559,14 +577,20 @@ function update() {
 		arm_tween_null.start();
 	}
 	if (game.time.time > nextFall[0]) {
-		var falling_ingredient = game.add.sprite(game.width/2+game.rnd.integerInRange(-15, 15), -100, fallQueue[0]);
+		if (fallQueue[0] === "doggo_body_sprite") {
+			var falling_ingredient = game.add.sprite(game.width/2+game.rnd.integerInRange(-15, 15), -100, "doggo_body_sprite");
+			falling_ingredient.width /= 2;
+			falling_ingredient.height /= 2;
+		}
+		else
+			var falling_ingredient = game.add.sprite(game.width/2+game.rnd.integerInRange(-15, 15), -100, fallQueue[0]);
 		game.physics.enable(falling_ingredient);
 		fallingItems.add(falling_ingredient);
 		falling_item_array.push(falling_ingredient);
 		falling_ingredient.anchor.set(0.5, 0.5);
 		fallQueue.splice(0, 1);
 		nextFall.splice(0, 1);
-		falling_ingredient.body.acceleration.y = 800;
+		falling_ingredient.body.acceleration.y = ingredient_fall_accel;
 		falling_ingredient.body.angularVelocity = game.rnd.integerInRange(-30, 30);
 	}
 	var trash_active = 0;
@@ -593,7 +617,12 @@ function update() {
 		var angle_rad = Math.abs(falling_item_array[0].angle) * (3.14/180);
 		y_mod = Math.sin(angle_rad) * falling_item_array[0].width/2 * 0.5;
 	}
-	if (falling_item_array.length > 0 && falling_item_array[0].y > wheel.y - wheel.height / 2 && trash_active === 1) {
+
+
+	if (falling_item_array.length > 0 && falling_item_numbers[0] === 9001) {
+		falling_item_array[0].anchor.set(0.5, 0.9);
+	}
+	if (falling_item_array.length > 0 && falling_item_array[0].y > wheel.y - wheel.height/2 && trash_active === 1) {
 	    trashSound.play();
 		var falling_ingredient = falling_item_array[0];
 		var fade_tween = game.add.tween(falling_ingredient).to({alpha: 0}, 200, Phaser.Easing.Quadratic.Out);
@@ -635,12 +664,29 @@ function update() {
 		var letter_tween = game.add.tween(added_letter).to({alpha: 1, y: "+20"}, 200, Phaser.Easing.Quadratic.InOut);
 		letter_tween.start();
 
+		if (falling_item_numbers[0] === 9001)
+			complete_sandwich_doggo(active_sandwich_index);
 
 		falling_item_numbers.splice(0, 1);
 
 		if (active_sandwiches[active_sandwich_index].length > 11)
 			nix_sandwich(active_sandwich_index);
 	}
+	for (var i = 0; i < active_recipe_timers.length; ++i) {
+	    if (active_recipe_types[i] === "special") {
+	        active_recipe_timers[i] -= 1;
+	        active_timer_images[i].width = 144 * (active_recipe_timers[i] / special_recipe_duration);
+	        if (active_recipe_timers[i] === 0) {
+	            nix_recipe(i);
+	            generateSandwich();
+	        }
+	    }
+	}
+
+	if (ingredient_spawn_rate > 2000)
+	    ingredient_spawn_rate -= 1000 / (1000 * 60);
+	if (ingredient_fall_accel < 800)
+	    ingredient_fall_accel += 200 / (1000 * 60);
 }
 
 function gameOver() {
@@ -651,17 +697,19 @@ function gameOver() {
     game.paused = true;
     bgMusic.pause();
     gameplayTheme.pause();
+    game.world.bringToTop(endScreen);
 }
 
 //Function called on left-click start
 function onClick() {
 	x_on_start = game.input.mousePointer.x;
 	y_on_start = game.input.mousePointer.y;
+
     //spawn_currency(x_on_start, y_on_start, 4);
+
 }
 //Function called on left-click release
 function onRelease() {
-
 	x_on_stop = game.input.mousePointer.x;
 	y_on_stop = game.input.mousePointer.y;
 	var distX = x_on_stop - x_on_start;
@@ -717,8 +765,28 @@ function onRelease() {
 function generateSandwich() {
 	if (active_recipes.length === 4)
 		return;
+	var sandwich_size = game.rnd.integerInRange(2, sandwich_max_size);
+
+	var special_chance = game.rnd.integerInRange(1, 100);
+	if (special_chance > 85) {
+		special_sandwich_proc();
+		var recipe_image = game.add.sprite(0, 0, "recipe_backing_special");
+		var recipe_timer = game.add.sprite(0, recipe_image.height/2 + 8, "recipe_timer_sprite");
+		active_timer_images.push(recipe_timer);
+		recipe_timer.anchor.set(0.5, 1);
+		recipe_image.addChild(recipe_timer);
+		active_recipe_timers.push(special_recipe_duration + game.rnd.integerInRange(-5, 5));
+		active_recipe_types.push("special");
+	}
+	else {
+		var recipe_image = game.add.sprite(0, 0, "recipe_backing");
+		var null_timer = game.add.sprite(0, 0, "blank_sprite");
+		active_timer_images.push(null_timer);
+		active_recipe_timers.push(0);
+		active_recipe_types.push("normal");
+	}
+
 	var sandwich = game.add.sprite(0, 0, "bread_sprite");
-	var recipe_image = game.add.sprite(0, 0, "recipe_backing");
 	background_layer.add(recipe_image);
 	recipe_image.anchor.set(0.5, 0.5);
 	recipe_image.alpha = 0;
@@ -728,7 +796,6 @@ function generateSandwich() {
 	sandwich.anchor.set(0.5, 0.5);
 	sandwich.width = 0.8 * sandwich.width;
 	var sandwich_height = 0;
-	var sandwich_size = game.rnd.integerInRange(2, sandwich_max_size);
 	var letter_mod = 2;
 	var letter_header = game.add.sprite(0, 0, "blank_sprite");
 	recipe_image.addChild(letter_header);
@@ -822,98 +889,43 @@ function generateSandwich() {
 
 //Function called to compare active recipes against plate contents (aka active sancwiches)
 function check_plates_for_recipe() {
-	//Green Quadrant is up (plate1)
-	if (wheel.angle % 360 === 225 || wheel.angle % 360 === -135) {
-		//loops over all active recipes
-		for (var i = 0; i < active_recipes.length; ++i) {
-			//checks if size of active recipe and size of active sandwich are different
-			if (active_recipes[i].length !== active_sandwiches[0].length)
-				continue;
-			var sandwich_copy = active_sandwiches[0].slice();
-			//loops over all ingredients of active recipe
-			for (var j = 0; j < active_recipes[i].length; ++j) {
-				//searches for matching ingredient in active sandwich
-				for (var k = 0; k < sandwich_copy.length; ++k) {
-					if (active_recipes[i][j] === sandwich_copy[k]) {
-						sandwich_copy.splice(k, 1);
-						break;
-					}
+	//loops over all active recipes
+	for (var i = 0; i < active_recipes.length; ++i) {
+		//checks if size of active recipe and size of active sandwich are different
+		if (active_recipes[i].length !== active_sandwiches[active_sandwich_index].length)
+			continue;
+		var sandwich_copy = [];
+		for (var j = 0; j < active_sandwiches[active_sandwich_index].length; ++j)
+			sandwich_copy.push(active_sandwiches[active_sandwich_index][j]);
+		//loops over all ingredients of active recipe
+		for (var j = 0; j < active_recipes[i].length; ++j) {
+			//searches for matching ingredient in active sandwich
+			for (var k = 0; k < sandwich_copy.length; ++k) {
+				if (active_recipes[i][j] === sandwich_copy[k]) {
+					sandwich_copy.splice(k, 1);
+					break;
 				}
 			}
-			//checks if all ingredients were removed (matched to recipe)
-			if (sandwich_copy.length !== 0)
-				continue;
-			//recipe matched the plate contents
-			end_time = end_time + 1000 * 8 * active_recipes[i].length;
-			score_amount = score_amount + 1.7 * (active_recipes[i].length + 2) + game.rnd.integerInRange(0, 9)/10;
-			spawn_currency(game.width/2, wheel.y - wheel.height/2, active_recipes[i].length);
-			nix_recipe(i);
-			complete_sandwich(0);
-			generateSandwich();
-			return;
 		}
-	}
-	//Purple Quadrant is up (plate2)
-	else if (wheel.angle % 360 === 45 || wheel.angle % 360 === -315) {
-		//loops over all active recipes
-		for (var i = 0; i < active_recipes.length; ++i) {
-			//checks if size of active recipe and size of active sandwich are different
-			if (active_recipes[i].length !== active_sandwiches[1].length)
-				continue;
-			var sandwich_copy = active_sandwiches[1].slice();
-			//loops over all ingredients of active recipe
-			for (var j = 0; j < active_recipes[i].length; ++j) {
-				//searches for matching ingredient in active sandwich
-				for (var k = 0; k < sandwich_copy.length; ++k) {
-					if (active_recipes[i][j] === sandwich_copy[k]) {
-						sandwich_copy.splice(k, 1);
-						break;
-					}
-				}
-			}
-			//checks if all ingredients were removed (matched to recipe)
-			if (sandwich_copy.length !== 0)
-				continue;
-			//recipe matched the plate contents
-			end_time = end_time + 1000 * 8 * active_recipes[i].length;
-			score_amount = score_amount + 1.7 * (active_recipes[i].length + 2) + game.rnd.integerInRange(0, 9)/10;
-			spawn_currency(game.width/2, wheel.y - wheel.height/2, active_recipes[i].length);
-			nix_recipe(i);
-			complete_sandwich(1);
-			generateSandwich();
-			return;
+		//checks if all ingredients were removed (matched to recipe)
+		if (sandwich_copy.length !== 0)
+			continue;
+		//recipe matched the plate contents
+		end_time = end_time + 1000 * 8 * active_recipes[i].length;
+		complete_sandwich(active_sandwich_index);
+		if (active_recipe_types[i] === "special") {
+			spawn_currency_doggo(game.width/2, wheel.y - wheel.height/2, 2 * (active_recipes[i].length));
+			score_amount = score_amount + (1.7 * (active_recipes[i].length + 2) + game.rnd.integerInRange(0, 9)/10) * 2;
 		}
-	}
-	//Blue Quadrant is up (plate3)
-	else if (wheel.angle % 360 === 315 || wheel.angle % 360 === -45) {
-		//loops over all active recipes
-		for (var i = 0; i < active_recipes.length; ++i) {
-			//checks if size of active recipe and size of active sandwich are different
-			if (active_recipes[i].length !== active_sandwiches[2].length)
-				continue;
-			var sandwich_copy = active_sandwiches[2].slice();
-			//loops over all ingredients of active recipe
-			for (var j = 0; j < active_recipes[i].length; ++j) {
-				//searches for matching ingredient in active sandwich
-				for (var k = 0; k < sandwich_copy.length; ++k) {
-					if (active_recipes[i][j] === sandwich_copy[k]) {
-						sandwich_copy.splice(k, 1);
-						break;
-					}
-				}
-			}
-			//checks if all ingredients were removed (matched to recipe)
-			if (sandwich_copy.length !== 0)
-				continue;
-			//recipe matched the plate contents
-			end_time = end_time + 1000 * 8 * active_recipes[i].length;
-			score_amount = score_amount + 1.7 * (active_recipes[i].length + 2) + game.rnd.integerInRange(0, 9)/10;
+		else {
 			spawn_currency(game.width/2, wheel.y - wheel.height/2, active_recipes[i].length);
-			nix_recipe(i);
-			complete_sandwich(2);
-			generateSandwich();
-			return;
+			score_amount = score_amount + 1.7 * (active_recipes[i].length + 2) + game.rnd.integerInRange(0, 9)/10;
 		}
+		generateSandwich();
+		nix_recipe(i);
+		if (sandwiches_completed % 3 === 0)
+			compliment_proc();
+		return;
 	}
 }
 
@@ -934,21 +946,19 @@ function nix_recipe(recipe_index) {
 	}
 	active_recipes.splice(recipe_index, 1);
 	active_recipe_images.splice(recipe_index, 1);
+	active_recipe_timers.splice(recipe_index, 1);
+	active_timer_images.splice(recipe_index, 1);
+	active_recipe_types.splice(recipe_index, 1);
 
 	var recipe_slide_out = game.add.tween(target_sprite).to({y: target_sprite.y - (target_sprite.height + 5)}, tween_duration, Phaser.Easing.Quadratic.InOut);
 	var recipe_fade_out = game.add.tween(target_sprite).to({alpha: 0}, tween_duration, Phaser.Easing.Quadratic.InOut);
 	target_sprite.lifespan = tween_duration;
 	recipe_slide_out.start();
 	recipe_fade_out.start();
-
-	sandwiches_completed += 1;
-	if (sandwich_max_size < 6)
-		sandwich_max_size = Math.floor(3 + (sandwiches_completed / 3));
 }
 
 //Function for killing a sandwich (deletes data, handles animation, etc)
 function nix_sandwich(sandwich_index) {
-    gameOver();
 	if (active_sandwiches[sandwich_index].length < 1)
 	    return;
 	nixSound.play();
@@ -956,104 +966,104 @@ function nix_sandwich(sandwich_index) {
 	var fade_tween = game.add.tween(target_sprite).to({alpha: 0}, 500, Phaser.Easing.Quadratic.Out);
 	fade_tween.start();
 	target_sprite.lifespan = 500;
-	for (var i = 0; i < active_sandwiches[sandwich_index].length; ++i) {
-		if (active_sandwiches[sandwich_index][i] === 0) {
-			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (i*18), 200);
+	var counter = 0;
+	while (active_sandwiches[sandwich_index].length > 0) {
+		if (active_sandwiches[sandwich_index][0] === 0) {
+			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (counter*18), 200);
 			emitter.makeParticles("cheese_sprite");
 			emitter.gravity = 1000;
 			emitter.width = 100;
 			emitter.height = 100;
 			emitter.start(true, 2000, null, 1);
 		}
-		else if (active_sandwiches[sandwich_index][i] === 1) {
-			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (i*18), 200);
+		else if (active_sandwiches[sandwich_index][0] === 1) {
+			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (counter*18), 200);
 			emitter.makeParticles("onion_sprite");
 			emitter.gravity = 1000;
 			emitter.width = 100;
 			emitter.height = 100;
 			emitter.start(true, 2000, null, 1);
 		}
-		else if (active_sandwiches[sandwich_index][i] === 2) {
-			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (i*18), 200);
+		else if (active_sandwiches[sandwich_index][0] === 2) {
+			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (counter*18), 200);
 			emitter.makeParticles("tomato_sprite");
 			emitter.gravity = 1000;
 			emitter.width = 100;
 			emitter.height = 100;
 			emitter.start(true, 2000, null, 1);
 		}
-		else if (active_sandwiches[sandwich_index][i] === 3) {
-			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (i*18), 200);
+		else if (active_sandwiches[sandwich_index][0] === 3) {
+			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (counter*18), 200);
 			emitter.makeParticles("lettuce_sprite");
 			emitter.gravity = 1000;
 			emitter.width = 100;
 			emitter.height = 100;
 			emitter.start(true, 2000, null, 1);
 		}
-		else if (active_sandwiches[sandwich_index][i] === 4) {
-			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (i*18), 200);
+		else if (active_sandwiches[sandwich_index][0] === 4) {
+			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (counter*18), 200);
 			emitter.makeParticles("ham_sprite");
 			emitter.gravity = 1000;
 			emitter.width = 100;
 			emitter.height = 100;
 			emitter.start(true, 2000, null, 1);
 		}
-		else if (active_sandwiches[sandwich_index][i] === 5) {
-			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (i*18), 200);
+		else if (active_sandwiches[sandwich_index][0] === 5) {
+			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (counter*18), 200);
 			emitter.makeParticles("turkey_sprite");
 			emitter.gravity = 1000;
 			emitter.width = 100;
 			emitter.height = 100;
 			emitter.start(true, 2000, null, 1);
 		}
-		else if (active_sandwiches[sandwich_index][i] === 6) {
-			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (i*18), 200);
+		else if (active_sandwiches[sandwich_index][0] === 6) {
+			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (counter*18), 200);
 			emitter.makeParticles("peanutbutter_sprite");
 			emitter.gravity = 1000;
 			emitter.width = 100;
 			emitter.height = 100;
 			emitter.start(true, 2000, null, 1);
 		}
-		else if (active_sandwiches[sandwich_index][i] === 7) {
-			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (i*18), 200);
+		else if (active_sandwiches[sandwich_index][0] === 7) {
+			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (counter*18), 200);
 			emitter.makeParticles("jelly_sprite");
 			emitter.gravity = 1000;
 			emitter.width = 100;
 			emitter.height = 100;
 			emitter.start(true, 2000, null, 1);
 		}
-		else if (active_sandwiches[sandwich_index][i] === 8) {
-			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (i*18), 200);
+		else if (active_sandwiches[sandwich_index][0] === 8) {
+			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (counter*18), 200);
 			emitter.makeParticles("bacon_sprite");
 			emitter.gravity = 1000;
 			emitter.width = 100;
 			emitter.height = 100;
 			emitter.start(true, 2000, null, 1);
 		}
-		else if (active_sandwiches[sandwich_index][i] === 9) {
-			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (i*18), 200);
+		else if (active_sandwiches[sandwich_index][0] === 9) {
+			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (counter*18), 200);
 			emitter.makeParticles("pickle_sprite");
 			emitter.gravity = 1000;
 			emitter.width = 100;
 			emitter.height = 100;
 			emitter.start(true, 2000, null, 1);
 		}
-		else if (active_sandwiches[sandwich_index][i] === 10) {
-			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (i*18), 200);
+		else if (active_sandwiches[sandwich_index][0] === 10) {
+			var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (counter*18), 200);
 			emitter.makeParticles("mayo_sprite");
 			emitter.gravity = 1000;
 			emitter.width = 100;
 			emitter.height = 100;
 			emitter.start(true, 2000, null, 1);
 		}
+		active_sandwiches[sandwich_index].splice(0, 1);
 	}
-	var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (i*18), 100);
+	var emitter = game.add.emitter(game.width/2, wheel.y - wheel.height/2 - (counter*18), 100);
 	emitter.makeParticles("bread_sprite");
 	emitter.gravity = 1000;
 	emitter.width = 100;
 	emitter.height = 100;
 	emitter.start(true, 2000, null, 1);
-	active_sandwiches[sandwich_index] = [];
-	//target_sprite.destroy();
 	spawn_sandwich(sandwich_index);
 }
 
@@ -1069,12 +1079,40 @@ function complete_sandwich(sandwich_index) {
 	var bread_tween = game.add.tween(final_bread).to({alpha: 1, y: target_y}, 400, Phaser.Easing.Bounce.Out);
 	bread_tween.start();
 
+	end_time = end_time + 1000 * 8 * active_recipes[sandwich_index].length;
+	score_amount = score_amount + 1.7 * (active_recipes[sandwich_index].length + 2) + game.rnd.integerInRange(0, 9)/10;
+	spawn_currency(game.width/2, wheel.y - wheel.height/2, active_recipes[sandwich_index].length);
+
 	var null_tween = game.add.tween(target_sprite).to({alpha: 1}, 400, Phaser.Easing.Linear.InOut);
 	var fade_tween = game.add.tween(target_sprite).to({alpha: 0, y: "-400"}, 600, Phaser.Easing.Quadratic.Out);
 	null_tween.chain(fade_tween);
 	null_tween.start();
 	target_sprite.lifespan = 1000;
 	spawn_sandwich(sandwich_index);
+
+	sandwiches_completed += 1;
+	if (sandwich_max_size < 6)
+		sandwich_max_size = Math.floor(3 + (sandwiches_completed / 3));
+}
+
+//Function to complete and remove a sandwich from a specified plate (doggo version)
+function complete_sandwich_doggo(sandwich_index) {
+	if (active_sandwiches[sandwich_index].length < 1)
+		return;
+	var target_sprite = active_sandwich_images[sandwich_index];
+	var fade_tween = game.add.tween(target_sprite).to({alpha: 0, y: "-400"}, 600, Phaser.Easing.Quadratic.Out);
+	fade_tween.start();
+	target_sprite.lifespan = 600;
+
+	end_time = end_time + (1000 * 8 * active_recipes[sandwich_index].length) * 2;
+	score_amount = score_amount + (1.7 * (active_recipes[sandwich_index].length + 2) + game.rnd.integerInRange(0, 9)/10) * 2;
+	spawn_currency_doggo(game.width/2, wheel.y - wheel.height/2, 2 * active_recipes[sandwich_index].length);
+
+	spawn_sandwich(sandwich_index);
+
+	sandwiches_completed += 1;
+	if (sandwich_max_size < 6)
+		sandwich_max_size = Math.floor(3 + (sandwiches_completed / 3));
 }
 
 //Function to spawn a new, blank sandwich on a specified plate
@@ -1094,7 +1132,7 @@ function spawn_sandwich(sandwich_index) {
 		active_sandwich_heights[1] = new_sandwich.height/2.5;
 		plate_2.addChild(new_sandwich);
 		active_sandwich_images[1] = new_sandwich;
-		active_sandwiches[2] = [];
+		active_sandwiches[1] = [];
 	}
 	//Spawn sandwich on plate3
 	else if (sandwich_index === 2) {
@@ -1132,6 +1170,75 @@ function spawn_currency(x_value, y_value, amount) {
 		fade_in_tween.start();
 		foreground_layer.add(new_coin);
 	}
+}
+//Function to create a burst of coins (doggo version)
+function spawn_currency_doggo(x_value, y_value, amount) {
+	for (var i = 0; i < amount * game.rnd.integerInRange(1, 4); ++i) {
+		var new_coin = game.add.sprite(0, 0, "currency_sprite_alt");
+		new_coin.anchor.set(0.5, 0.5);
+		new_coin.alpha = 0;
+		new_coin.x = x_value + game.rnd.integerInRange(-100, 100);
+		new_coin.y = y_value - game.rnd.integerInRange(-20, amount * 20);
+		new_coin.width /= 10;
+		new_coin.height /= 10;
+		var coin_duration = game.rnd.integerInRange(600, 1200);
+		new_coin.lifespan = coin_duration;
+		move_tween = game.add.tween(new_coin).to({x: score_text.x, y: score_text.y}, coin_duration, Phaser.Easing.Quadratic.In);
+		move_tween.start();
+		fade_in_tween = game.add.tween(new_coin).to({alpha: 1}, 200, Phaser.Easing.Quadratic.InOut);
+		scale_in_tween = game.add.tween(new_coin.scale).to({x: 0.8, y: 0.8}, 200, Phaser.Easing.Quadratic.InOut);
+		fade_out_tween = game.add.tween(new_coin).to({alpha: 0}, coin_duration - 200, Phaser.Easing.Quintic.In);
+		fade_in_tween.chain(fade_out_tween);
+		scale_in_tween.start();
+		fade_in_tween.start();
+		foreground_layer.add(new_coin);
+	}
+}
+//Function to output a random compliment
+function compliment_proc() {
+	var message_image = game.add.sprite(game.width, 470 + game.rnd.integerInRange(-10, 40), "message_backing");
+	message_image.lifespan = 10000;
+	message_image.anchor.set(0, 0.5);
+	var chosen_line = game.rnd.integerInRange(0, compliment_messages.length - 1);
+	var compliment_text = game.add.text(10, 0, compliment_messages[chosen_line], {font: "40px Arial", fill: "#4ac5e8"});
+	compliment_text.anchor.set(0, 0.5);
+	compliment_text.alpha = 0.8;
+	var original_width = message_image.width;
+	message_image.width = compliment_text.width + 100;
+	message_image.addChild(compliment_text);
+	compliment_text.width = compliment_text.width * (original_width/message_image.width);
+	var message_tween = game.add.tween(message_image).to({x: -1 * message_image.width}, 10000, Phaser.Easing.Linear.InOut);
+	message_tween.start();
+}
+function time_warning_proc() {
+	var message_image = game.add.sprite(game.width, 470 + game.rnd.integerInRange(-10, 40), "message_backing");
+	message_image.lifespan = 10000;
+	message_image.anchor.set(0, 0.5);
+	var chosen_line = game.rnd.integerInRange(0, low_time_messages.length - 1);
+	var warning_text = game.add.text(10, 0, low_time_messages[chosen_line], {font: "40px Arial", fill: "#ff0000"});
+	warning_text.anchor.set(0, 0.5);
+	warning_text.alpha = 0.8;
+	var original_width = message_image.width;
+	message_image.width = warning_text.width + 100;
+	message_image.addChild(warning_text);
+	warning_text.width = warning_text.width * (original_width/message_image.width);
+	var message_tween = game.add.tween(message_image).to({x: -1 * message_image.width}, 10000, Phaser.Easing.Linear.InOut);
+	message_tween.start();
+}
+function special_sandwich_proc() {
+	var message_image = game.add.sprite(game.width, 470 + game.rnd.integerInRange(-10, 40), "message_backing");
+	message_image.lifespan = 10000;
+	message_image.anchor.set(0, 0.5);
+	var chosen_line = game.rnd.integerInRange(0, special_sandwich_messages.length - 1);
+	var special_text = game.add.text(10, 0, special_sandwich_messages[chosen_line], {font: "40px Arial", fill: "#efba3e"});
+	special_text.anchor.set(0, 0.5);
+	special_text.alpha = 0.8;
+	var original_width = message_image.width;
+	message_image.width = special_text.width + 100;
+	message_image.addChild(special_text);
+	special_text.width = special_text.width * (original_width/message_image.width);
+	var message_tween = game.add.tween(message_image).to({x: -1 * message_image.width}, 10000, Phaser.Easing.Linear.InOut);
+	message_tween.start();
 }
 
 </script>
