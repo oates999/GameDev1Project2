@@ -70,6 +70,19 @@ var sandwich_max_size = 3;
 var sandwiches_completed = 0;
 var active_letter_locations_x = [-25, 25, -80, 80, -135, 135, 0, -55, 55, -110, 110];
 var active_letter_locations_y = [55, 55, 58, 58, 70, 70, 110, 113, 113, 120, 120];
+//sounds
+var moneySound;
+var newPlateSound;
+var nixSound;
+var trashSound;
+var landSound;
+var landSound2;
+var menuTheme;
+var gameplayTheme;
+var bgMusic;
+var dialogSound;
+var turnSound;
+
 //User Interface Elements
 var time_remaining;
 var low_time_remaining;
@@ -160,12 +173,28 @@ function preload () {
 	possibleLetters.push("pickle_letter");
 	game.load.image("mayo_letter", "assets/images/letters/letter_Ma.png");
 	possibleLetters.push("mayo_letter");
+
+    //sounds
+	game.load.audio('moneySound', 'assets/sounds/Cash_register.wav');
+	game.load.audio('newPlateSound', 'assets/sounds/Plate.wav');
+	game.load.audio('nixSound', 'assets/sounds/Explosion_01.wav');
+	game.load.audio('trashSound', 'assets/sounds/Rustle Thud.wav');
+	game.load.audio('landSound', 'assets/sounds/land1.wav');
+	game.load.audio('landSound2', 'assets/sounds/land2.wav');
+	//game.load.audio('menuTheme', '');
+	game.load.audio('gameplayTheme', 'assets/sounds/music.mp3');
+	game.load.audio('bgMusic', 'assets/sounds/background factory.wav');
+	game.load.audio('dialogSound', 'assets/sounds/beep.wav');
+	game.load.audio('turnSound', 'assets/sounds/turing dial.wav');
+
 	//Background Elements
 	game.load.image("kitchen_back", "assets/images/kitchen_back.png");
 	game.load.image("kitchen_front", "assets/images/kitchen_front.png");
 	game.load.image("conveyor_belt", "assets/images/conveyorbelt.png");
 	game.load.image("diner_floor", "assets/images/diner_floor.png");
 	game.load.image("floor_gradient", "assets/images/diner_floor_gradient.png");
+
+
     //User Interface Elements
 	game.load.image("timer_backing", "assets/images/timer_score_backing.png");
 	//game.load.image("titleGraphic", "assets/images/pausedBG.png");
@@ -190,8 +219,22 @@ function create() {
 	superforeground_layer = game.add.group();
 	userinterface_layer = game.add.group();
 
+    //sounds
+	moneySound = game.add.audio('moneySound');
+	newPlateSound = game.add.audio('newPlateSound');
+	bgMusic = game.add.audio('bgMusic');
+	gameplayTheme = game.add.audio('gameplayTheme');
+	nixSound = game.add.audio('nixSound');
+	dialogSound = game.add.audio('dialogSound');
+	trashSound = game.add.audio('trashSound');
+	turnSound = game.add.audio('turnSound');
+	landSound = game.add.audio('landSound');
+	landSound2 = game.add.audio('landSound2');
+
     //UI elements
     //pause game
+	endScreen = game.add.sprite(0, 0, "gameOver");
+	endScreen.visible = false;
 	p_button = game.add.sprite(30, 30, 'button_sprite');
 	p_text = game.add.text(42, 50, 'PAUSE', { font: '52px Arial', fill: '#fff' });
 	paused_bg = game.add.sprite(0, 0, 'paused_BG');
@@ -226,8 +269,10 @@ function create() {
 	    }
 	});
 	game.input.onUp.add(function () {
+        //unpause
 	    if (game.paused && !isInMenu && !isGameOver) {
 	        nextSpawn += game.time.time - pausedTime;
+	        end_time += game.time.time - pausedTime;
 	        for (var i = 0; i < nextFall.length; i++){
 	           nextFall[i] += game.time.time - pausedTime; 
 	        }
@@ -237,29 +282,35 @@ function create() {
 	        p_text.visible = true;
 	        game.paused = false
 	    }
-	    if (game.paused && isInMenu) {
+        //start game
+	    else if (game.paused && isInMenu) {
 	        if (game.input.x > 250 && game.input.x < 650 && game.input.y > 900 && game.input.y < 1030) {
 	            nextSpawn = game.time.time + 1000;
+	            end_time = game.time.time + (1000 * 60 * 3);
 	            isInMenu = false;
 	            game.paused = false;
 	            menuBG.visible = false;
 	            play.visible = false;
 	            playDown.visible = false;
+	            bgMusic.loop = true;
+	            bgMusic.play();
+	            gameplayTheme.loop = true;
+	            gameplayTheme.play();
 	        } else {
 	            play.visible = true;
 	            playDown.visible = false;
 	        }
 	    }
-	    if (game.paused && isGameOver) {
+        //restart
+	    else if (game.paused && isGameOver) {
+            /*
 	        isGameOver = false;
 	        isInMenu = true;
 	        game.paused = false;
-	        endScreen.destroy();
-	        endText.destroy();
-	        continue_text.destroy();
+	        endScreen.visible = false;
 	        menuBG.visible = true;
 	        play.visible = true;
-            //reset score, timer
+            */
 	    }
 	});
 
@@ -436,7 +487,6 @@ function create() {
 }
 
 function update() {
-
     if (isInMenu && !game.paused) {
         game.paused = true;
     }
@@ -447,9 +497,10 @@ function update() {
 	var zero_mod = "";
 	if (Math.floor((end_time - game.time.time)/(1000))%60 < 10)
 		zero_mod = "0";
-	if (game.time.time > end_time)
-		time_remaining.text = "0:00";
-	else {
+	if (game.time.time > end_time){
+	    time_remaining.text = "0:00";
+	    gameOver();
+	} else {
 		time_remaining.text = Math.floor((end_time - game.time.time)/(1000*60)) + ":" + zero_mod + Math.floor((end_time - game.time.time)/(1000))%60;
 		time_flash.text = time_remaining.text;
 		low_time_flash.text = time_remaining.text;
@@ -542,7 +593,8 @@ function update() {
 		var angle_rad = Math.abs(falling_item_array[0].angle) * (3.14/180);
 		y_mod = Math.sin(angle_rad) * falling_item_array[0].width/2 * 0.5;
 	}
-	if (falling_item_array.length > 0 && falling_item_array[0].y > wheel.y - wheel.height/2 && trash_active === 1) {
+	if (falling_item_array.length > 0 && falling_item_array[0].y > wheel.y - wheel.height / 2 && trash_active === 1) {
+	    trashSound.play();
 		var falling_ingredient = falling_item_array[0];
 		var fade_tween = game.add.tween(falling_ingredient).to({alpha: 0}, 200, Phaser.Easing.Quadratic.Out);
 		fade_tween.start();
@@ -551,6 +603,11 @@ function update() {
 		falling_item_numbers.splice(0, 1);
 	}
 	else if (falling_item_array.length > 0 && falling_item_array[0].y > (active_plate_height - y_mod) && trash_active === 0) {
+	    if (Math.random() < 0.5) {
+	        landSound.play();
+	    } else {
+	        landSound2.play();
+	    }
 		var falling_ingredient = falling_item_array[0];
 		active_sandwich_images[active_sandwich_index].addChild(falling_ingredient);
 		falling_ingredient.x = falling_ingredient.x - game.width/2;
@@ -587,17 +644,20 @@ function update() {
 }
 
 function gameOver() {
-    endScreen = game.add.sprite(0, 0, "gameOver");
+    endScreen.visible = true;
     isGameOver = true;
+    p_button.visible = false;
+    p_text.visible = false;
     game.paused = true;
-    continue_text = game.add.text(game.width / 2, game.height / 2 + 300, 'TAP TO COMTINUE', { font: '72px Arial', fill: '#fff' });
+    bgMusic.pause();
+    gameplayTheme.pause();
 }
 
 //Function called on left-click start
 function onClick() {
 	x_on_start = game.input.mousePointer.x;
 	y_on_start = game.input.mousePointer.y;
-	//spawn_currency(x_on_start, y_on_start, 4);
+    //spawn_currency(x_on_start, y_on_start, 4);
 }
 //Function called on left-click release
 function onRelease() {
@@ -607,16 +667,20 @@ function onRelease() {
 	var distX = x_on_stop - x_on_start;
 	var distY = y_on_stop - y_on_start;
 	//Swipe was horizontal (distX more that twice as large as distY)
-	if (Math.abs(distX) > Math.abs(distY)*2 && Math.abs(distX) > 10) {
+	if (Math.abs(distX) > Math.abs(distY) * 2 && Math.abs(distX) > 10) {
 		//Left Swipe
 		if (distX < 0) {
-			if (wheel.angle % 90 === 45 || wheel.angle % 90 === -45)
-				leftTweenAlpha.start();
+		    if (wheel.angle % 90 === 45 || wheel.angle % 90 === -45) {
+		        leftTweenAlpha.start();
+		        turnSound.play();
+		    }
 		}
 		//Right Swipe
 		else {
-			if (wheel.angle % 90 === 45 || wheel.angle % 90 === -45)
-				rightTweenAlpha.start();
+		    if (wheel.angle % 90 === 45 || wheel.angle % 90 === -45) {
+		        rightTweenAlpha.start();
+		        turnSound.play();
+		    }
 		}
 	}
 	else if (Math.abs(distY) > Math.abs(distX)*2 && Math.abs(distY) > 10) {
@@ -884,8 +948,10 @@ function nix_recipe(recipe_index) {
 
 //Function for killing a sandwich (deletes data, handles animation, etc)
 function nix_sandwich(sandwich_index) {
+    gameOver();
 	if (active_sandwiches[sandwich_index].length < 1)
-		return;
+	    return;
+	nixSound.play();
 	var target_sprite = active_sandwich_images[sandwich_index];
 	var fade_tween = game.add.tween(target_sprite).to({alpha: 0}, 500, Phaser.Easing.Quadratic.Out);
 	fade_tween.start();
@@ -1045,6 +1111,7 @@ function spawn_sandwich(sandwich_index) {
 
 //Function to create a burst of coins
 function spawn_currency(x_value, y_value, amount) {
+    moneySound.play();
 	for (var i = 0; i < amount * game.rnd.integerInRange(1, 4); ++i) {
 		var new_coin = game.add.sprite(0, 0, "currency_sprite");
 		new_coin.anchor.set(0.5, 0.5);
