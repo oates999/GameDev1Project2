@@ -88,6 +88,8 @@ var gameplayTheme;
 var bgMusic;
 var dialogSound;
 var turnSound;
+var warningSound;
+var dogoSound;
 
 
 //User Interface Elements
@@ -191,6 +193,8 @@ function preload () {
 	game.load.audio('bgMusic', 'assets/sounds/background factory.wav');
 	game.load.audio('dialogSound', 'assets/sounds/beep.wav');
 	game.load.audio('turnSound', 'assets/sounds/turing dial.wav');
+	game.load.audio('warningSound', 'assets/sounds/Timer Alert.wav');
+	game.load.audio('dogoSound', 'assets/sounds/Woo!.wav');
 
 
 	//Background Elements
@@ -238,7 +242,14 @@ function create() {
 	turnSound = game.add.audio('turnSound');
 	landSound = game.add.audio('landSound');
 	landSound2 = game.add.audio('landSound2');
+	warningSound = game.add.audio('warningSound');
+	dogoSound = game.add.audio('dogoSound');
 
+
+	bgMusic.loop = false;
+	bgMusic.play();
+	gameplayTheme.loop = false;
+	gameplayTheme.play();
     //UI elements
     //pause game
 	endScreen = game.add.sprite(0, 0, "gameOver");
@@ -300,10 +311,7 @@ function create() {
 	            menuBG.visible = false;
 	            play.visible = false;
 	            playDown.visible = false;
-	            bgMusic.loop = true;
-	            bgMusic.play();
-	            gameplayTheme.loop = true;
-	            gameplayTheme.play();
+	            
 	        } else {
 	            play.visible = true;
 	            playDown.visible = false;
@@ -488,6 +496,14 @@ function create() {
 }
 
 function update() {
+    if (!bgMusic.isPlaying) {
+        bgMusic.restart();
+        bgMusic.play();
+    }
+    if (!gameplayTheme.isPlaying) {
+        gameplayTheme.restart();
+        gameplayTheme.play();
+    }
 
     if (isInMenu && !game.paused) {
         game.paused = true;
@@ -529,7 +545,7 @@ function update() {
 	score_text.text = "Đ " + Math.floor(score_amount) + "." + score_mod + Math.floor((score_amount - Math.floor(score_amount))*10);
 
 	if (game.time.time > nextSpawn) {
-		var corgi_chance = game.rnd.integerInRange(1, 100);
+		var corgi_chance = game.rnd.integerInRange(1, 25);
 		if (corgi_chance === 1) {
 			var newItem = game.add.sprite(100, 185, "doggo_body_sprite");
 			newItem.width /= 4;
@@ -1097,6 +1113,7 @@ function complete_sandwich(sandwich_index) {
 
 //Function to complete and remove a sandwich from a specified plate (doggo version)
 function complete_sandwich_doggo(sandwich_index) {
+    dogoSound.play();
 	if (active_sandwiches[sandwich_index].length < 1)
 		return;
 	var target_sprite = active_sandwich_images[sandwich_index];
@@ -1196,6 +1213,7 @@ function spawn_currency_doggo(x_value, y_value, amount) {
 }
 //Function to output a random compliment
 function compliment_proc() {
+    dialogSound.play();
 	var message_image = game.add.sprite(game.width, 470 + game.rnd.integerInRange(-10, 40), "message_backing");
 	message_image.lifespan = 10000;
 	message_image.anchor.set(0, 0.5);
@@ -1211,6 +1229,8 @@ function compliment_proc() {
 	message_tween.start();
 }
 function time_warning_proc() {
+    dialogSound.play();
+    warningSound.play();
 	var message_image = game.add.sprite(game.width, 470 + game.rnd.integerInRange(-10, 40), "message_backing");
 	message_image.lifespan = 10000;
 	message_image.anchor.set(0, 0.5);
@@ -1226,6 +1246,7 @@ function time_warning_proc() {
 	message_tween.start();
 }
 function special_sandwich_proc() {
+    dialogSound.play();
 	var message_image = game.add.sprite(game.width, 470 + game.rnd.integerInRange(-10, 40), "message_backing");
 	message_image.lifespan = 10000;
 	message_image.anchor.set(0, 0.5);
