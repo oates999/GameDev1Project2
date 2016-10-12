@@ -545,7 +545,7 @@ function update() {
 	score_text.text = "Đ " + Math.floor(score_amount) + "." + score_mod + Math.floor((score_amount - Math.floor(score_amount))*10);
 
 	if (game.time.time > nextSpawn) {
-		var corgi_chance = game.rnd.integerInRange(1, 25);
+		var corgi_chance = game.rnd.integerInRange(1, 75);
 		if (corgi_chance === 1) {
 			var newItem = game.add.sprite(100, 185, "doggo_body_sprite");
 			newItem.width /= 4;
