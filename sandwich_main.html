@@ -93,6 +93,7 @@ var pausedTime;
 
 //main menu
 var play;
+var playDown;
 var plau_text;
 var credits_text;
 var tutorial_text;
@@ -166,14 +167,17 @@ function preload () {
 	game.load.image("diner_floor", "assets/images/diner_floor.png");
 	game.load.image("floor_gradient", "assets/images/diner_floor_gradient.png");
     //User Interface Elements
+	game.load.image("timer_backing", "assets/images/timer_score_backing.png");
 	//game.load.image("titleGraphic", "assets/images/pausedBG.png");
 	game.load.image("paused_BG", "assets/images/pausedBG.png");
 	game.load.image("recipe_backing", "assets/images/recipe_backing.png");
 	game.load.image("blank_sprite", "assets/images/null.png");
 	game.load.image("button_sprite", "assets/images/pausedButton.png");
+	game.load.image('playUp', 'assets/images/playUp.png');
+	game.load.image('playDown', 'assets/images/playDown.png');
     //main menu elements
-	game.load.image("menuBG", "assets/images/diner_floor.png");
-	game.load.image("gameOver", "assets/images/diner_floor.png");
+	game.load.image("menuBG", "assets/images/titleScreen.png");
+	game.load.image("gameOver", "assets/images/gameOver.png");
 	game.load.image("background_gradient", "assets/images/kitchen_backing_gradient.png");
 }
 
@@ -207,13 +211,22 @@ function create() {
     //Start screen
 	isInMenu = true;
 	menuBG = game.add.sprite(0, 0, "menuBG");
-	play = game.add.sprite(game.width / 2, game.height / 2, "button_sprite");
+	play = game.add.sprite(game.width / 2, game.height / 2 + 300, "playUp");
+	playDown = game.add.sprite(game.width / 2, game.height / 2 + 300, "playDown");
 	play.anchor.setTo(0.5);
-	play_text = game.add.text(game.width / 2, game.height / 2, "START", { font: '50px Arial', fill: '#fff' });
-	play_text.anchor.setTo(0.5);
+	playDown.anchor.setTo(0.5);
+	playDown.visible = false;
     //input while paused
-	game.input.onDown.add(function () {
-	    if (game.paused && !isInMenu) {
+	game.input.onDown.add(function () { 
+	    if (game.paused && isInMenu) {
+	        if (game.input.x > 250 && game.input.x < 650 && game.input.y > 900 && game.input.y < 1030) {
+	            play.visible = false;
+	            playDown.visible = true;
+	        }
+	    }
+	});
+	game.input.onUp.add(function () {
+	    if (game.paused && !isInMenu && !isGameOver) {
 	        nextSpawn += game.time.time - pausedTime;
 	        for (var i = 0; i < nextFall.length; i++){
 	           nextFall[i] += game.time.time - pausedTime; 
@@ -225,17 +238,28 @@ function create() {
 	        game.paused = false
 	    }
 	    if (game.paused && isInMenu) {
-	        if (game.input.x > 250 && game.input.x < 650 && game.input.y > 600 && game.input.y < 730) {
+	        if (game.input.x > 250 && game.input.x < 650 && game.input.y > 900 && game.input.y < 1030) {
 	            nextSpawn = game.time.time + 1000;
 	            isInMenu = false;
 	            game.paused = false;
-	            menuBG.destroy();
-	            play.destroy();
-	            play_text.destroy();
+	            menuBG.visible = false;
+	            play.visible = false;
+	            playDown.visible = false;
+	        } else {
+	            play.visible = true;
+	            playDown.visible = false;
 	        }
 	    }
 	    if (game.paused && isGameOver) {
-	        //buttons on the game over screen. 
+	        isGameOver = false;
+	        isInMenu = true;
+	        game.paused = false;
+	        endScreen.destroy();
+	        endText.destroy();
+	        continue_text.destroy();
+	        menuBG.visible = true;
+	        play.visible = true;
+            //reset score, timer
 	    }
 	});
 
@@ -563,9 +587,10 @@ function update() {
 }
 
 function gameOver() {
-    game.add.sprite(0, 0, "gameOver");
+    endScreen = game.add.sprite(0, 0, "gameOver");
     isGameOver = true;
     game.paused = true;
+    continue_text = game.add.text(game.width / 2, game.height / 2 + 300, 'TAP TO COMTINUE', { font: '72px Arial', fill: '#fff' });
 }
 
 //Function called on left-click start
